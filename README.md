@@ -29,8 +29,8 @@ The file structure should look like this:
 
     Directory with scripts
         input
-             {sample}\_R1.fa
-             {sample}\_R2.fa
+             {sample}_R1.fa
+             {sample}_R2.fa
         references
              {reference_genome}.fa
 
