@@ -26,12 +26,13 @@ The snakefile as it stands expects input files in the format of {sample}\_R1.fa 
 Reference data is expected under references/{reference_genome}.fa, replacing bracketed values with the specific values of your sample and the reference genome name.
 
 The file structure should look like this:
-Directory with scripts
- input
-  {sample}\_R1.fa
-  {sample}\_R2.fa
- references
-  {reference_genome}.fa
+
+    Directory with scripts
+        input
+             {sample}\_R1.fa
+             {sample}\_R2.fa
+        references
+             {reference_genome}.fa
 
 ## Usage
 First, ensure your reference of choice is indexed with bwa.
