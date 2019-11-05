@@ -45,3 +45,9 @@ snakemake -j {max_threads} {sample}\_{reference_genome}\_errors.txt
 
 Again, replacing bracketed values with the name of your sample, the name of your reference genome file, and with the maximum threads value being the maximum number of threads available to the pipeline for processing. Default value for max_threads is 1.
 Add the argument "--use-conda circleseq.yml" as an alternative to global installation of requisite packages, or activate the environment with conda and call snakemake from within it.
+
+## Test Case
+Reference and simulated input data have been provided to run an example to ensure correctly installed dependencies. 
+
+To call the test case, simply input at the command line:
+"snakemake simulated_yeast_errors.txt"
