@@ -72,4 +72,4 @@ rule count_errors:
     output:
         "{sample}_{reference}_errors.txt"
     shell:
-        "python3 count_errors.py -t 1 -e {input[0]} -f {input[1]} > {output}"
+        "python3 count_errors.py -t 2 -e {input[0]} -f {input[1]} > {output}"
