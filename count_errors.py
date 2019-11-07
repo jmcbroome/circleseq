@@ -20,11 +20,10 @@ def count_bases(path):
     linecounts = []
     with open(path) as inf:
         for entry in inf:
-            if entry[0] == '@':
-                record = True
-            elif record:
+            if entry[0] == '@' or entry[0] == ">":
+                continue
+            else:
                 linecounts.append(len(entry.strip()))
-                record = False
     counts['bases'] = sum(linecounts)
     counts['reads'] = len(linecounts)
     return counts
