@@ -1,4 +1,5 @@
 name: circleseq
+channels:
   - bioconda
   - conda-forge
   - defaults
@@ -109,5 +110,6 @@ dependencies:
   - pip:
     - pyqt5-sip==4.19.18
     - pyqtwebengine==5.12.1
+    - seaborn==0.9.0
 prefix: /home/jakob/anaconda3/envs/circleseq
 

@@ -1,6 +1,6 @@
 rule all:
     input:
-        "{sample}_{reference}_errors.txt"
+        "{sample}_{reference}_errors.png"
 rule bwa_map:
     input:
         "input/{sample}_R1.fa",
@@ -73,3 +73,10 @@ rule count_errors:
         "{sample}_{reference}_errors.txt"
     shell:
         "python3 count_errors.py -t 2 -e {input[0]} -f {input[1]} > {output}"
+rule graph_errors:
+    input:
+        "{sample}_{reference}_errors.txt"
+    output:
+        "{sample}_{reference}_errors.png"
+    shell:
+        "python3 graph_errors.py {input}"
