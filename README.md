@@ -11,6 +11,8 @@ snakemake v5.7.1
 ### Python Packages
 scikit-bio v0.5.5
 biopython v1.74
+*optional:* matplotlib v3.1.0
+seaborn v0.9.0
 
 ## Installation
 Copy the git directory:
@@ -43,6 +45,12 @@ Then simply call:
 
 snakemake -j {max_threads} {sample}\_{reference_genome}\_errors.txt
 
+To include the final optional graphing step (dependencies are matplotlib and seaborn), instead call:
+
+snakemake -j {max_threads} {sample}\_{reference_genome}\_errors.png
+
+Or run the graph_errors.py script separately on the error table resulting from the above pipeline.
+
 Again, replacing bracketed values with the name of your sample, the name of your reference genome file, and with the maximum threads value being the maximum number of threads available to the pipeline for processing. Default value for max_threads is 1.
 Add the argument "--use-conda circleseq.yml" as an alternative to global installation of requisite packages, or activate the environment with conda and call snakemake from within it.
 
@@ -50,4 +58,11 @@ Add the argument "--use-conda circleseq.yml" as an alternative to global install
 Reference and simulated input data have been provided to run an example to ensure correctly installed dependencies. 
 
 To call the test case, simply input at the command line:
+
 "snakemake simulated_yeast_errors.txt"
+
+Or
+
+"snakemake simulated_yeast_errors.png"
+
+To include the optional graphing step.
