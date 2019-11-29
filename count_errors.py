@@ -3,6 +3,7 @@
 #import
 import argparse
 import sys
+import subprocess
 #define functions/classes
 
 def argparser():
@@ -11,7 +12,7 @@ def argparser():
     #add args
     parser.add_argument('-t', '--threshold', type = int, help = 'Set a minimum number of times a base must be seen. default 1', default = 1)
     parser.add_argument('-e', '--errors', help = 'path to input file. default is stdin', default = sys.stdin)
-    parser.add_argument('-f', '--fasta', help = 'path to original read fasta. Include to print error rates. Exclude will print only hard counts', default = None)
+    parser.add_argument('-c', '--count', help = 'path to file containing a base count number for coverage and rate calculations. Exclude to print only hard counts', default = None)
     args = parser.parse_args()
     return args
 
@@ -36,8 +37,10 @@ def main():
         for b in "ACGT":
             if a != b:
                 sumerrors[(a,b)] = 0
-    if args.fasta != None:
-        counts = count_bases(args.fasta)
+    if args.count != None:
+        counts = {}
+        with open(args.count) as inf:
+            counts['bases'] = int(inf.readline().strip())
     else:
         counts = None
     with open(args.errors) as ef:
