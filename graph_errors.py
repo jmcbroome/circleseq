@@ -19,7 +19,7 @@ def graph(errors, total, output):
     sns.barplot(x=xv, y=yv, color = 'teal', ax = panel1)
     panel2 = plt.axes([7.8/10,3.8/5,1/10,.5/5])
     panel2.tick_params(axis = "both", which = "both", bottom = False, labelbottom = False, left = False, labelleft = False, right = False, labelright = False, top = False, labeltop = False)
-    panel2.text(x = 1/10, y = 1.1/5, s ='Genome Size\n {}'.format(int(total)))
+    panel2.text(x = 1/10, y = 1.1/5, s ='Total Bases\n {}'.format(int(total)))
     plt.savefig(output, dpi = 600)
 
 def argparser():
@@ -45,7 +45,7 @@ def main():
                 rate = float(spent[3])
                 errors[key] = (count, rate)
         #calculate genome size as well, using the last count/rate.
-        total = count/rate
+        total = sum([count/rate for count, rate in errors.values()])
     if args.output == None:
         output = args.input.split('.')[0] + '.png'
     elif args.output.endswith('.png'):
