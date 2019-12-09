@@ -41,12 +41,19 @@ def main():
         for entry in ef:
             spent = entry.strip().split()
             if len(spent) > 4:
-                ref = spent[2].upper()
+                ref = spent[2].upper() #don't particularly care whether its forward or reverse
                 cir = spent[4].upper()
-                if cir in 'ACGT' and ref in "ACGT" and spent[5] != '/' and spent[5] != '.' and len(cir) == 1:
-                    if cir != ref and int(spent[5]) >= args.threshold:
-                        # if ord(spent[5]) + 33 > 80:
-                        sumerrors[(ref, cir)] += 1
+                if len(cir) == 1:
+                    if cir in 'ACGT' and ref in "ACGT" and spent[5] != '.' and spent[5] != '/':
+                        if cir != ref and int(spent[5]) >= args.threshold: #somewhat redundant conditions
+                            # if ord(spent[5]) + 33 > 80:
+                            sumerrors[(ref, cir)] += 1
+                else: #sometimes more than one read covers a spot, and disagree on that particular error
+                    for i, base in enumerate(cir):
+                        if base in 'ACGT' and spent[5][i] != "/" and spent[5][i] != '.':
+                            if base != ref and int(spent[5][i]) >= args.threshold:
+                                sumerrors[(ref, base)] += 1
+
     print("Error Counts")
     if counts == None:
         for k,v in sumerrors.items():
