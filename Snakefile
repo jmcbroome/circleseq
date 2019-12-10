@@ -65,23 +65,13 @@ rule mpileup:
         "{sample}_{reference}_variants.txt"
     shell:
         "samtools mpileup -f references/{wildcards.reference}.fa {input} > {output}"
-rule count_coverage:
-    input:
-        "{sample}_{reference}_sorted.bam",
-        "references/{reference}.fa"
-    output:
-        "{sample}_{reference}_coveredbases.fa"
-    run:
-        shell("bedtools genomecov -bg -ibam {input[0]} > {wildcards.sample}_{wildcards.reference}_coverage.bedgraph")
-        shell("bedtools getfasta -fi {input[1]} -bed {wildcards.sample}_{wildcards.reference}_coverage.bedgraph -fo {output}") 
 rule count_errors:
     input:
-        "{sample}_{reference}_variants.txt",
-        "{sample}_{reference}_coveredbases.fa"
+        "{sample}_{reference}_variants.txt"
     output:
         "{sample}_{reference}_errors.txt"
     shell:
-        "python3 count_errors.py -t 2 -e {input[0]} -s {input[1]} > {output}"
+        "python3 count_errors.py -t 2 -e {input[0]} > {output}"
 rule graph_errors:
     input:
         "{sample}_{reference}_errors.txt"
