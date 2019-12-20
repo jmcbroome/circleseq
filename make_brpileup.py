@@ -9,7 +9,7 @@ import argparse
 import skbio.alignment as skaln
 from multiprocessing import Pool
 from functools import partial
-
+import re
 #define functions/classes
 
 def argparser():
@@ -98,36 +98,82 @@ def best_base(basecounts):
     #if all are 0, return an N.
     if all([c==0 for c in basecounts.values()]):
         return ('N',0)
-    nonz = [(b,c) for b,c in basecounts.items() if c > 0]
+    #nonz = [(b,c) for b,c in basecounts.items() if c > 0]
+    nonz = sorted([(b,c) for b,c in basecounts.items() if c > 0],key = lambda x:x[1], reverse = True)
     if len(nonz) == 1:
         return nonz[0]
+    #if len(nonz) > 0:
+     #   return nonz[0]
     else:
         return ('N',0) #for now, ignoring ANY level of ambiguity- outside of bad bases, ofc. This section can be easily altered in the future.
 
 def basecount(region, seqs):
     counts = {i:{b:0 for b in 'ACGT'} for i in range(len(region)+1)}
     #build the align object for the region
-    ssw = skaln.StripedSmithWaterman(region, gap_open_penalty = 5, gap_extend_penalty = 1, match_score = 1, mismatch_score = -2, zero_index = False)
+    #ssw = skaln.StripedSmithWaterman(region, gap_open_penalty = 5, gap_extend_penalty = 1, match_score = 1, mismatch_score = -1, zero_index = False)
+    #print("ErrorChecker from basecount in make_brpileup: Number of sequences, lengths of sequences", len(seqs), [len(v[0]) for v in seqs])
     for seq, qual in seqs: 
         if rand_aln_p(len(region), len(seq)) < .0001:
-            aln = ssw(seq)
+            #print('len of seq', len(seq))
+            #aln = ssw(seq)
+            seqaln = skaln.StripedSmithWaterman(seq, gap_open_penalty = 5, gap_extend_penalty = 2, match_score = 1, mismatch_score = -3, zero_index = False)
+            aln = seqaln(region)
+            #print('prop of seq aligned', (aln['target_end_optimal']-aln['target_begin'])/len(seq))
             #convert results to look like pairwise2 output.
             #if aln['optimal_alignment_score'] <= len(seq) - 4:
                 #print('Skipping for low score')
              #   continue
             #if indels in the cigar- e.g. not a simple parse- skip it.
             try:
-                matched = int(aln['cigar'][:-1])
+                #matched = int(aln['cigar'][:-1])
+                matched = 0
+                for sec in aln['cigar'].split("M"):
+                    reg = re.split('[A-Z]',sec)
+                    if len(reg[-1]) > 0:
+                        matched += int(reg[-1])
             except:
-                #print('indel in alignment {}, continuing'.format(aln['cigar']))
+                print('indel in alignment {}, continuing'.format(aln['cigar']))
                 continue
-            if matched < len(seq) - 4:
-                index = int(aln['query_begin'])
-                for tar_ind in range(aln['target_begin'], aln['target_end_optimal']):
-                    if index + tar_ind in counts:
-                        base = aln['target_sequence'][tar_ind]
-                        if base in 'ACGT':
-                            counts[index + tar_ind][base] += 1
+            #print("ErrorChecker from basecount in make_brpileup: Length of sequence, length aligned, length of target", len(seq),matched,len(region))
+            if matched >= len(seq): # - 4: #should always be true atm. 
+                index = aln['target_begin']
+                #for tar_ind in range(aln['target_begin'], aln['target_end_optimal']):
+                if index != -1: #apparently this means no mapping?
+                    try:
+                        rseq = aln.aligned_target_sequence
+                    except:
+                        rseq = aln['target_sequence'][aln['target_begin']:aln['target_end_optimal']]
+                    try:
+                        qseq = aln.aligned_query_sequence
+                    #rseq = aln.aligned_target_sequence
+                    except:
+                    #print("Failure to Align?", len(seq), aln['target_begin'], len(region), aln['query_begin'], aln['cigar']
+                    #print("Cant use aligned query sequence object- using full sequence. len,cigar ", len(aln['query_sequence']), aln['cigar'])
+                        qseq = aln['query_sequence'][aln['query_begin']:aln['query_end']]
+                    for i, qb in enumerate(qseq):
+                        try:
+                            if qb in 'ACGT' and rseq[i-1] != '-':
+                                counts[index + i][qb] += 1 
+                        except:
+                            continue
+                            print("Index issues", 'countslen', len(counts), 'len rseq', len(rseq), 'target start', index, 'current base', i, aln['cigar'], qseq, rseq)
+                    #    except:
+                     #       print("Index error with counts of length {}, index {}, position in query {}".format(len(counts),index,i))
+ #                   try:
+#                        qb = aln['query_sequence'][tar_ind - aln['target_begin'] + aln['query_begin']]
+  #                  except:
+                        #print("Index {} not in sequence of length {}, {} trimmed".format(tar_ind - aln['target_begin'] + aln['query_begin'], len(aln['query_sequence']), aln['query_begin']))
+                        #continue
+                    #if tar_ind in counts:
+                     #   if qb in 'ACGT':
+                     #       counts[tar_ind][qb] += 1
+                #for tar_ind in range(aln['query_begin'], aln['query_end']):
+                #    if index + tar_ind in counts:
+                #        base = aln['query_sequence'][tar_ind]
+                #        if base in 'ACGT':
+                #            counts[index + tar_ind][base] += 1
+            #else:
+             #   print("ErrorChecker from basecount in make_brpileup: Sequence length overmatched? {}".format(len(seq)), matched, seq)
             # aln = pairwise2.align.localms(region, seq, 1, -2, -5,-1, one_alignment_only = True)
             #set a minimum allowable alignment score to count this. If no more than 1 mismatch, say, minimum score should be length of alignment -1 .
             # if len(aln) == 0 or aln[0][2] <= len(seq) - 4: #score for a sequence with a single snp mismatch is length-3

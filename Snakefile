@@ -64,7 +64,7 @@ rule mpileup:
     output:
         "{sample}_{reference}_variants.txt"
     shell:
-        "samtools mpileup -f references/{wildcards.reference}.fa {input} > {output}"
+        "samtools mpileup -B -f references/{wildcards.reference}.fa {input} > {output}"
 rule count_errors:
     input:
         "{sample}_{reference}_variants.txt"
