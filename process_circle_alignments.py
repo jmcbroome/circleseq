@@ -124,7 +124,7 @@ def main():
                         spent = entry.strip().split()
                         #remove entries with flags > 1000, unaligned reads *, hard clipped, deletions and insertions.
                         badcig = any([k != -1 for k in [spent[5].find(let) for let in 'HID']])
-                        if int(spent[1]) > 1000 or spent[5] == '*' or badcig:
+                        if int(spent[1]) > 1000 or spent[5] == '*' or badcig or int(spent[4]) == 0:
                             continue
                         if spent[0] in seen:
                             name = spent[0] + '_1' #its the second read primary alignment
