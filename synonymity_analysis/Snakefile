@@ -1,0 +1,40 @@
+#config
+GENOME_DATABASE = 'Drosophila_simulans' #ensembl database entry supported by snpEff
+#GENOME_DATABASE = 'Dsim_r2'
+GFF_DATABASE = "Dsim.db" #name of the sqlite database of gff3 to make and/or read
+HEADER = 'dsim_vcf_header.txt' #text file containing a vcf header for your species
+PATH_TO_SNPF = '../snpEff/snpEff.jar'
+GFF = 'dsim-all-r2.02.gff'
+
+rule all:
+    input:
+        "{sample}_genemut.txt"
+rule make_vcf:
+    input:
+        "{sample}_variants.txt"
+    output:
+       "{sample}.vcf"
+    shell:
+        "python3 pileup_to_vcf.py -a {HEADER} -p {input} -o {output}"
+rule clean_vcf: #issues with chromosome mismatches in some cases.
+    input:
+        "{sample}.vcf"
+    output:
+        "{sample}_dchr.vcf"
+    shell:
+        "sed 's/Scf_//' {input} > {output}" #comment this rule out if unnecessary.
+        #or add additional text processing commands if needed. As long as chromosomes in this dataset and in SnpEff's database match.
+rule call_snpf:
+    input:
+        "{sample}_dchr.vcf"
+    output:
+        "{sample}_snpf.vcf"
+    shell:
+        "java -Xmx4g -jar {PATH_TO_SNPF} {GENOME_DATABASE} {input} > {output}"
+rule process_snpf:
+    input:
+        "{sample}_snpf.vcf"
+    output:
+        "{sample}_genemut.txt"
+    shell:
+        "python3 process_snpf.py -a {GFF} -m {input} -o {output} -d {GFF_DATABASE}"
