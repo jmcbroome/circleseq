@@ -49,7 +49,11 @@ def parse_annvars(path):
                         print(info[-1])
                         print(anndata)
                         continue
-                    if annotation not in ['upstream_gene_variant','downstream_gene_variant','intergenic_region']: #none of these annotations make sense for the rest of this.
+                    if annotation in ['synonymous_variant', #silent
+                    '5_prime_UTR_premature_start_codon_gain_variant','5_prime_UTR_variant', #5 prime and a nonsense bonus
+                    '3_prime_UTR_variant', #3 prime
+                    'stop_gained','stop_lost','start_lost', #nonsense
+                    'missense_variant','downstream_gene_variant','upstream_gene_variant']: #missense and silent.
                         # gene_id = gene_id.strip("CHR_START-")
                         alt = allele[-1]
                         if len(alt) != 1:
@@ -97,7 +101,7 @@ def combine_annotations(variants, db, novariant_depth, outf, verbose = False):
     # ontdata = {'NonVar':novariant_depth}
     # depthdata = {'NonVar':novariant_depth}
     with open(outf, 'w+') as out:
-        colvec = ['GeneID','Ontologies','ExonLen','IntronLen','Start','End']
+        colvec = ['GeneID','Ontologies','ExonLen','IntronLen','ThreeLen','FiveLen','Start','End']
         colvec2 = ['Coordinate', "Position", 'Type', 'Category', 'Impact', 'Depth', 'Count']
         print('#'+"\t".join(colvec), file = out) #a header line to remind me what goes where.
         print('#'+"\t".join(colvec2), file = out)
@@ -105,22 +109,34 @@ def combine_annotations(variants, db, novariant_depth, outf, verbose = False):
             genedata = {}
             try:
                 feature = db[gene]
-                print("Collecting data for {}".format(gene))
+                #print("Collecting data for {}".format(gene))
             except:
-                print("GeneID {} not available in database, continuing".format(gene))
+                #print("GeneID {} not available in database, continuing".format(gene))
                 continue
-            onts = feature['Ontology_term']
+            try:
+                onts = feature['Ontology_term']
+            except:
+                print("Can't access ontology for feature", feature)
+                continue
             #collect basic gene information
             genedata['GeneID'] = gene
             genedata['Ontologies'] = ','.join(onts)
             codelen = 0
             intronlen = 0
+            threeprime = 0
+            fiveprime = 0
             for c in db.children(gene, featuretype = 'exon'):
                 codelen += abs(c.end - c.start) #length of exons in this gene.
             for c in db.children(gene, featuretype = 'intron'):
                 intronlen += abs(c.end - c.start) #length of introns in this gene.
+            for c in db.children(gene, featuretype = 'three_prime_UTR'):
+                threeprime += abs(c.end - c.start)
+            for c in db.children(gene, featuretype = 'five_prime_UTR'):
+                fiveprime += abs(c.end - c.start)
             genedata['ExonLen'] = codelen
             genedata['IntronLen'] = intronlen
+            genedata['ThreeLen'] = threeprime
+            genedata['FiveLen'] = fiveprime
             genedata['Start'] = db[gene].start
             genedata['End'] = db[gene].end
             #collect mutation specific data and depths for average depth calculations.
