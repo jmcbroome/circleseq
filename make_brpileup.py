@@ -92,7 +92,12 @@ def generate_consensus(region, seqs):
         b,q = best_base(bcs)
         consensus.append(b)
         quality.append(str(q))
+    #try an additional step removing useless ns from the end to make certain stuff easier. just the end because don't want to mess with trying to update the index of the start.
+    #stripped = ''.join(consensus).rstrip("N")
+    #stripped_quality = quality[:len(stripped)]
+    #assert len(stripped) = len(stripped_quality)
     return ''.join(consensus), ''.join(quality)
+    #return stripped, stripped_quality
 
 def best_base(basecounts):
     #if all are 0, return an N.
@@ -102,18 +107,19 @@ def best_base(basecounts):
     nonz = sorted([(b,c) for b,c in basecounts.items() if c > 0],key = lambda x:x[1], reverse = True)
     if len(nonz) == 1:
         return nonz[0]
-    #if len(nonz) > 0:
-     #   return nonz[0]
+    elif len(nonz) > 1:
+        return ('N', nonz[0][1]) #retain depth but don't count as a real change if there's any controversy.
     else:
-        return ('N',0) #for now, ignoring ANY level of ambiguity- outside of bad bases, ofc. This section can be easily altered in the future.
+        return ('N',0) 
 
 def basecount(region, seqs):
     counts = {i:{b:0 for b in 'ACGT'} for i in range(len(region)+1)}
     #build the align object for the region
     #ssw = skaln.StripedSmithWaterman(region, gap_open_penalty = 5, gap_extend_penalty = 1, match_score = 1, mismatch_score = -1, zero_index = False)
     #print("ErrorChecker from basecount in make_brpileup: Number of sequences, lengths of sequences", len(seqs), [len(v[0]) for v in seqs])
-    for seq, qual in seqs: 
-        if rand_aln_p(len(region), len(seq)) < .0001:
+    for seq, qual in seqs:
+        #if True:
+        if rand_aln_p(len(region), len(seq)) <= .0001: # effectively disabling filter for testing.
             #print('len of seq', len(seq))
             #aln = ssw(seq)
             seqaln = skaln.StripedSmithWaterman(seq, gap_open_penalty = 5, gap_extend_penalty = 2, match_score = 1, mismatch_score = -3, zero_index = False)
@@ -124,39 +130,48 @@ def basecount(region, seqs):
                 #print('Skipping for low score')
              #   continue
             #if indels in the cigar- e.g. not a simple parse- skip it.
-            try:
+            if aln['cigar'].count('I') == 0 and aln['cigar'].count('D') == 0:
                 #matched = int(aln['cigar'][:-1])
                 matched = 0
                 for sec in aln['cigar'].split("M"):
                     reg = re.split('[A-Z]',sec)
                     if len(reg[-1]) > 0:
                         matched += int(reg[-1])
-            except:
-                print('indel in alignment {}, continuing'.format(aln['cigar']))
+            else:
+                #print('indel in query alignment {}, continuing'.format(aln['cigar']))
                 continue
             #print("ErrorChecker from basecount in make_brpileup: Length of sequence, length aligned, length of target", len(seq),matched,len(region))
-            if matched >= len(seq): # - 4: #should always be true atm. 
+            #if matched >= len(seq) - 4: # - 4: #should always be true atm.
+            if True: 
                 index = aln['target_begin']
                 #for tar_ind in range(aln['target_begin'], aln['target_end_optimal']):
                 if index != -1: #apparently this means no mapping?
                     try:
-                        rseq = aln.aligned_target_sequence
+                        rseq = aln.target_sequence[aln.target_begin:aln.target_end_optimal]
                     except:
-                        rseq = aln['target_sequence'][aln['target_begin']:aln['target_end_optimal']]
-                    try:
-                        qseq = aln.aligned_query_sequence
+                        continue #if I don't have a target sequence aligned value, I didn't get an alignment and I don't want to contiue.
+
+                        #rseq = aln['target_sequence'][aln['target_begin']:aln['target_end_optimal']]
+                    #try:
+                        #qseq = aln.aligned_query_sequence
                     #rseq = aln.aligned_target_sequence
-                    except:
+                    #except:
                     #print("Failure to Align?", len(seq), aln['target_begin'], len(region), aln['query_begin'], aln['cigar']
-                    #print("Cant use aligned query sequence object- using full sequence. len,cigar ", len(aln['query_sequence']), aln['cigar'])
-                        qseq = aln['query_sequence'][aln['query_begin']:aln['query_end']]
-                    for i, qb in enumerate(qseq):
+                        #print("Cant use aligned query sequence object- skipping. len,cigar ", len(aln['query_sequence']), aln['cigar'])
+                        #qseq = aln['query_sequence'][aln['query_begin']:aln['query_end']]
+                        #continue
+                    qseq = aln.query_sequence[aln.query_begin:aln.query_end]
+                    for i, rb in enumerate(rseq):
                         try:
-                            if qb in 'ACGT' and rseq[i-1] != '-':
-                                counts[index + i][qb] += 1 
+                            assert len(qseq) == len(rseq)
+                            qb = qseq[i]
+                            if qb in 'ACGT' and rb != '-':
+                                counts[index + i + 1][qb] += 1
                         except:
-                            continue
-                            print("Index issues", 'countslen', len(counts), 'len rseq', len(rseq), 'target start', index, 'current base', i, aln['cigar'], qseq, rseq)
+                            print("Error trying to count alignment to region", region, aln.aligned_target_sequence, aln.query_sequence, aln['cigar'], index, i, rb, qb)
+                        #except:
+                            #continue
+                            #print("Index issues", 'countslen', len(counts), 'len rseq', len(rseq), 'target start', index, 'current base', i, aln['cigar'], qseq, rseq)
                     #    except:
                      #       print("Index error with counts of length {}, index {}, position in query {}".format(len(counts),index,i))
  #                   try:

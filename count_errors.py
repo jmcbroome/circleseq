@@ -80,7 +80,11 @@ def main():
                 spent = entry.strip().split()
                 alts = [b for b in spent[4] if b in 'ACGTN.']
                 quals = spent[5]
-                assert len(alts) == len(quals)
+                try:
+                    assert len(alts) == len(quals)
+                except:
+                    print("Alt and Qual Mismatch:", entry)
+                    continue
                 nalts = ''
                 nquals = ''
                 for i, base in enumerate(alts):
@@ -89,10 +93,10 @@ def main():
                         nquals += quals[i]
                 counts[ref] += len(nalts) #number of bases I have sufficient information about (not Ns and not 1x circles)
                 #apply filters for calling mutations here.
-                #first, the depth must be at least five in order to differentiate between germline and somatic mutations.
+                #first, the depth must be at least ten in order to differentiate between germline and somatic mutations.
                 #depth being the non-N content of the alternative allele string.
                 #second, any mutations which exist at higher than a 25% frequency in the string are probably germline and should be ignored for somatic mutation analysis.
-                if len(nalts) > 5:
+                if len(nalts) > 12: #try setting this to 12 for now to best distinguish?
                     # [nalts.count(base) < len(nalts)/4 for base in 'ACGT']):
                     #now, apply the pcr duplicate permutation filter structure using functions above.
                     skip = '' #record no more than one of the bases that will be included here because of pcr duplicate inflation.
