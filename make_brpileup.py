@@ -33,9 +33,9 @@ def rand_aln_p(bl, sl):
 
 def phred_code_qual(sym):
     if isinstance(sym, str):
-        return ord(sym) + 33
+        return ord(sym) - 33
     elif isinstance(sym, int):
-        return chr(sym-33)
+        return chr(sym+33)
     else:
         print("Error: quality score conversion not understood. Check input")
         raise ValueError
@@ -82,8 +82,8 @@ def splitread(split_path):
                 sd[cur].append(tmp)
     return sd
 
-def generate_consensus(region, seqs):
-    region_counts = basecount(region,seqs)
+def generate_consensus(region, seqs, id = None):
+    region_counts = basecount(region,seqs, id)
     #to create the consensus, simply iterate through region counts and indeces.
     consensus = []
     quality = [] #actually just count. makes stratifying easier.
@@ -112,7 +112,7 @@ def best_base(basecounts):
     else:
         return ('N',0) 
 
-def basecount(region, seqs):
+def basecount(region, seqs, id = None):
     counts = {i:{b:0 for b in 'ACGT'} for i in range(len(region)+1)}
     #build the align object for the region
     #ssw = skaln.StripedSmithWaterman(region, gap_open_penalty = 5, gap_extend_penalty = 1, match_score = 1, mismatch_score = -1, zero_index = False)
@@ -161,14 +161,22 @@ def basecount(region, seqs):
                         #qseq = aln['query_sequence'][aln['query_begin']:aln['query_end']]
                         #continue
                     qseq = aln.query_sequence[aln.query_begin:aln.query_end]
+                    qqual = qual[aln.query_begin:aln.query_end]
+                    #print('\t'.join([str(v) for v in [len(aln.query_sequence),len(qseq),len(aln.target_sequence),len(rseq),aln.cigar,aln.optimal_alignment_score,aln.optimal_alignment_score/(len(rseq)+1)]]))
+                    #if aln.optimal_alignment_score != len(rseq) + 1:
+                        #print(rseq.strip(), aln['cigar'], qseq.strip(), qqual.strip(), sep = '\t', end = '\n')
+                    if aln.optimal_alignment_score / (len(rseq)+1) < .5: #about .8% of the alignments are below this threshold in quality and shouldn't be used.
+                        continue
                     for i, rb in enumerate(rseq):
+                        assert len(qseq) == len(rseq)
                         try:
-                            assert len(qseq) == len(rseq)
                             qb = qseq[i]
-                            if qb in 'ACGT' and rb != '-':
+                            if qb in 'ACGT' and phred_code_qual(qqual[i]) > 20: #trying a more stringent cutoff, 20 is .01 # 12: #12 is the cutoff of <5% of being an error, e.g. qscore 13+ == <.05 of being error
                                 counts[index + i + 1][qb] += 1
+                                if rb in 'CG' and qb in 'AT':
+                                    print(id[0], id[1], id[2], aln['cigar'], index, i+1, rb, qb, phred_code_qual(qqual[i]))
                         except:
-                            print("Error trying to count alignment to region", region, aln.aligned_target_sequence, aln.query_sequence, aln['cigar'], index, i, rb, qb)
+                            print("Error trying to count alignment to region", region, aln.aligned_target_sequence, aln.query_sequence, aln['cigar'])#, index, i, rb, qb)
                         #except:
                             #continue
                             #print("Index issues", 'countslen', len(counts), 'len rseq', len(rseq), 'target start', index, 'current base', i, aln['cigar'], qseq, rseq)
@@ -233,7 +241,7 @@ def mapper(input_iter):
         # return ''
     # splts = spl_d[k]
     k, coord, reg, splts = input_iter
-    cons = generate_consensus(reg, splts) #version of the reference with either Ns for ambiguous/no information or the 
+    cons = generate_consensus(reg, splts, id = (coord[0][0],coord[0][1],k)) #version of the reference with either Ns for ambiguous/no information or the 
     samstr = sam_entry(cons, coord, k)
     return samstr
 
