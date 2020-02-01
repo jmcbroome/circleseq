@@ -173,8 +173,8 @@ def basecount(region, seqs, id = None):
                             qb = qseq[i]
                             if qb in 'ACGT' and phred_code_qual(qqual[i]) > 20: #trying a more stringent cutoff, 20 is .01 # 12: #12 is the cutoff of <5% of being an error, e.g. qscore 13+ == <.05 of being error
                                 counts[index + i + 1][qb] += 1
-                                if rb in 'CG' and qb in 'AT':
-                                    print(id[0], id[1], id[2], aln['cigar'], index, i+1, rb, qb, phred_code_qual(qqual[i]))
+                                #if rb in 'CG' and qb in 'AT':
+                                #    print(id[0], id[1], id[2], aln['cigar'], index, i+1, rb, qb, phred_code_qual(qqual[i]))
                         except:
                             print("Error trying to count alignment to region", region, aln.aligned_target_sequence, aln.query_sequence, aln['cigar'])#, index, i, rb, qb)
                         #except:
