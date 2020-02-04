@@ -3,11 +3,11 @@ rule all:
         "{sample}_{reference}_errors.png"
 rule bwa_map:
     input:
-        "input/{sample}_R1.fa",
-        "input/{sample}_R2.fa",
+        "input/{sample}_R1.fq.gz",
+        "input/{sample}_R2.fq.gz",
         "references/{reference}.fa"
     output:
-        "{sample}_{reference}_initial_mapping.sam"
+        temp("{sample}_{reference}_initial_mapping.sam")
     benchmark:
         "{sample}_{reference}_imap_benchmark.tsv"
     threads: 20
@@ -15,20 +15,21 @@ rule bwa_map:
         "bwa mem -t {threads} {input[2]} {input[0]} {input[1]} > {output}"
 rule process_circle_alignments:
     input:
-        "{sample}_{reference}_initial_mapping.sam"
+        "{sample}_{reference}_initial_mapping.sam",
+        "references/{reference}.fa.fai"
     output:
-        "{sample}_{reference}_split.fa",
-        "{sample}_{reference}_regions.bed"
+        temp("{sample}_{reference}_split.fa"),
+        temp("{sample}_{reference}_regions.bed")
     benchmark:
         "{sample}_{reference}_process_benchmark.tsv"
     shell:
-        "python3 process_circle_alignments.py -f {output[0]} -b {output[1]} -d 10 {input}"
+        "python3 process_circle_alignments.py -r {input[1]} -f {output[0]} -b {output[1]} -d 10 {input[0]}"
 rule makefasta:
     input:
         "{sample}_{reference}_regions.bed",
         "references/{reference}.fa"
     output:
-        "{sample}_{reference}_reference.fa"
+        temp("{sample}_{reference}_reference.fa")
     shell:
         "bedtools getfasta -fi {input[1]} -bed {input[0]} -fo {output} -name"
 rule make_brpileup:
@@ -37,7 +38,7 @@ rule make_brpileup:
         "{sample}_{reference}_regions.bed",
         "{sample}_{reference}_reference.fa"
     output:
-        "{sample}_{reference}_consensus.sam"
+        temp("{sample}_{reference}_consensus.sam")
     benchmark:
         "{sample}_{reference}_refpileup_benchmark.tsv"
     threads: 20

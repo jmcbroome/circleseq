@@ -88,22 +88,22 @@ def find_align(bigseq, smallseq):
     #three new sections: trim up to where trim matches match, match, trim after matching match ends
     return [aln[-2], aln[-1]-aln[-2], len(bigseq)-aln[2]]
 
-def create_bed(aln, d):
+def create_bed(aln, d, cstops):
     #create a bed entry based on alignment plus distance
     #used downstream for retrieving areas of genome for local realignment.
     #bed format is chromosome (or in this case region or scaffold or whatever.), name, start, stop
-    #in the future a smart method would use the name plus iterating through both files to only perform local alignment to the region matching the name of the original read
-    #but I can substitute for now with a dumb call back to minimap that will work if perform somewhat worse.
+    #rind is the .fai file that tells me where my boundaries are for defining the bed
     name = aln[0]
     chro = aln[2]
-    start = max(int(aln[3]) - d, 0)
-    stop = int(aln[3]) + len(aln[9]) + d
+    start = max(int(aln[3]) - d, 1)
+    stop = min(int(aln[3]) + len(aln[9]) + d, cstops[chro])
     bstr = '\t'.join([chro, str(start), str(stop), name])
     return bstr
 
 def argparser():
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', '--verbose', type = bool, help = "Set to True to print status updates. Default True", default = True)
+    parser.add_argument('-r', '--reference_index', help = 'Path to a .fai produced by samtools index for checking chromosome lengths when defining features.')
     parser.add_argument('-f', '--fasta_pref', help = 'Set to a string to use as a prefix for the fasta file. Default is split', default = 'split')
     parser.add_argument('-b', '--bed_pref', help = 'Set to a string to use as a prefix for the bed file. Default is regions', default = 'regions')
     parser.add_argument('-d', '--distance', type = int, help = 'Set to a value of distance around alignments to use for local area remapping of secondary alignments downstream.', default = 10)
@@ -116,6 +116,11 @@ def main():
     outf_name = args.fasta_pref# + '.fa'
     outb_name = args.bed_pref# + '.bed'
     seen = set()
+    cstops = {}
+    with open(args.reference_index) as inf:
+        for entry in inf:
+            spent = entry.strip().split()
+            cstops[spent[0]] = int(spent[1])
     with open(args.sam) as samf:
         with open(outf_name, 'w+') as outf:
             with open(outb_name, 'w+') as outb:
@@ -132,7 +137,7 @@ def main():
                             name = spent[0] + '_0'
                             seen.add(spent[0])
                             #adding additional functionality: now creating a bed file based on the read index areas.
-                            bent = create_bed(spent, args.distance)
+                            bent = create_bed(spent, args.distance, cstops)
                             print(bent, file = outb)
                         # for l in create_fasta(additional_split(spent), name):
                         for l in create_fasta(spent, name):
