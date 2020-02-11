@@ -83,7 +83,7 @@ def main():
                 try:
                     assert len(alts) == len(quals)
                 except:
-                    print("Alt and Qual Mismatch:", entry)
+                    #print("Alt and Qual Mismatch:", entry)
                     continue
                 nalts = ''
                 nquals = ''
