@@ -31,8 +31,8 @@ The file structure should look like this:
 
     Directory with scripts
         input
-             {sample}_R1.fa
-             {sample}_R2.fa
+             {sample}_R1.fq.gz
+             {sample}_R2.fq.gz
         references
              {reference_genome}.fa
 
