@@ -257,8 +257,8 @@ def main():
         with Pool(args.threads) as p:
             # mapper_d = partial(mapper, bed_d = bed_d, reg_d = reg_d, spl_d = spl_d)
             arguments = [(k, bed_d[k], reg_d[k], spl_d[k]) for k in spl_d.keys() if k in reg_d and k in bed_d]
-            samstrs = p.imap_unordered(mapper, arguments)
-            for s in samstrs:
+            #samstrs = p.imap_unordered(mapper, arguments)
+            for s in p.imap_unordered(mapper,arguments):
                 if s != '':
                     print(s, file = outf)
 
