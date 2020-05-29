@@ -54,6 +54,8 @@ Or run the graph_errors.py script separately on the error table resulting from t
 Again, replacing bracketed values with the name of your sample, the name of your reference genome file, and with the maximum threads value being the maximum number of threads available to the pipeline for processing. Default value for max_threads is 1.
 Add the argument "--use-conda circleseq.yml" as an alternative to global installation of requisite packages, or activate the environment with conda and call snakemake from within it.
 
+Note that "errors" here refers to a summary of discovered mutations within your sample, along with likely unfiltered mismapping errors and so forth. Downstream analysis is generally performed using the constructed consensus bam, or the accompanying pileup variants.txt.
+
 ## Test Case
 Reference and simulated input data have been provided to run an example to ensure correctly installed dependencies. 
 
