@@ -14,4 +14,4 @@ While these scripts have many options and are not canonized into a pipeline, the
 
 The "subset_pileup.py" script and "filter_somatic.py" scripts are additional scripts that may be useful for removing mutations from the pileup or the vcf step, respectively, but are not required.
 
-These scripts are fairly specific to my current project at the moment, but much of their content can be adapted for DFE inference in other species.
+These scripts are fairly specific to my current project at the moment, but much of their content can be adapted for DFE inference in other species. If your goal is just to annotate the effects of your mutations, please use the pipeline in the subdirectory "synonymity_analysis", which should serve the needs of most species without any special setup.
