@@ -30,14 +30,18 @@ def argparser():
     parser.add_argument('-t', '--type', help = 'Choose a feature to split the mutation dataframe into for multiple runs. Optional', default = None)
     parser.add_argument('-g', '--go', help = 'Set a path to a gffdb file created by gffutils to divide mutations by GO term for analysis. Optional', default = None)
     parser.add_argument('-o', '--mode', help = 'Prefix for a target annotation column to use in the frame. Default no prefix', default = '')
+    parser.add_argument('-e', '--germline', type = bool, help = 'Set to True to infer DFE for germline mutations instead of somatic mutations (cutoff between types set by argument). Default False', default = False)
     args = parser.parse_args()
     return args
 
 def get_binom(prob, samples = 10000):
     return binom.rvs(n = samples, p = prob) #random variate instead of mean to add some noise to the plot.
 
-def sfs_from_binomial(mutdf, sub, cutoff = 1, samples = 10000, maxd = 2000, mind = 0, mode = 'MyAnn'):
-    sfvc = mutdf[(mutdf.SampleFreq < cutoff) & (mutdf.Depth > mind) & (mutdf.Depth < maxd) & (mutdf[mode] == sub) & (mutdf.PredFreq > 1e-6)].PredFreq.apply(get_binom, samples = samples).apply(np.around).value_counts()
+def sfs_from_binomial(mutdf, sub, cutoff = 1, samples = 10000, maxd = 2000, mind = 0, mode = 'MyAnn', germ = False):
+    if not germ:
+        sfvc = mutdf[(mutdf.SampleFreq < cutoff) & (mutdf.Depth > mind) & (mutdf.Depth < maxd) & (mutdf[mode] == sub) & (mutdf.PredFreq > 1e-6)].PredFreq.apply(get_binom, samples = samples).apply(np.around).value_counts()
+    else:
+        sfvc = mutdf[(mutdf.SampleFreq >= cutoff) & (mutdf.Depth > mind) & (mutdf.Depth < maxd) & (mutdf[mode] == sub) & (mutdf.PredFreq > 1e-6)].PredFreq.apply(get_binom, samples = samples).apply(np.around).value_counts()
     afs = [sfvc[i] if i in sfvc.index else 0 for i in range(0,samples+1)]
     return dadi.Spectrum(afs)
 
@@ -103,8 +107,8 @@ def compute_sfs(mutdf, args):
     The first step in the procedure. Uses binomial draws with the predicted sample frequency to estimate the number of inviduals in a virtual population that would have each mutation, then computes the SFS from that distribution.
     '''
     coln = args.mode + 'MyAnn'
-    non_sfs = sfs_from_binomial(mutdf, 'non', cutoff = args.cutoff, maxd = args.maxdepth, mind = args.mindepth, samples = args.samples, mode = coln)
-    syn_sfs = sfs_from_binomial(mutdf, 'syn', cutoff = args.cutoff, maxd = args.maxdepth, mind = args.mindepth, samples = args.samples, mode = coln)
+    non_sfs = sfs_from_binomial(mutdf, 'non', cutoff = args.cutoff, maxd = args.maxdepth, mind = args.mindepth, samples = args.samples, mode = coln, germ = args.germline)
+    syn_sfs = sfs_from_binomial(mutdf, 'syn', cutoff = args.cutoff, maxd = args.maxdepth, mind = args.mindepth, samples = args.samples, mode = coln, germ = args.germline)
     return non_sfs, syn_sfs
 
 def fit_demography(syn_sfs, args):
