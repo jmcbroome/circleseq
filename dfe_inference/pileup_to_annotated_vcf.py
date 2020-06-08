@@ -24,6 +24,7 @@ def argparser():
     #parser.add_argument('-f', '--freq_cutoff', type = float, help = 'Value between 0 and 1, above which all entries are ignored. Default 1.')
     parser.add_argument('-d', '--mind', type = int, help = 'Minimum depth for somatic mutation identification. Default 10', default = 10)
     parser.add_argument('-r', '--params', nargs = 2, type = float, help = 'Alpha and beta parameters for the betabinomial')
+    parser.add_argument('-b', '--bayes', type = bool, help = 'Set to True to use the Bayesian Posterior Mean Estimator for most likely frequency. False instead uses Nelder-Mead MLE. Default True', default = True)
     args = parser.parse_args()
     return args
 
@@ -32,9 +33,39 @@ ldf = {} #update this with likelihoods to save on redundant calculations
 def get_fp(f, a, b, d, x):
     return -1 * beta.pdf(a=a,b=b,x=f) * binom.pmf(n=d,k=x,p=f)
 
-def add_likelihood_info(nline, a, b):
+def add_likelihood_info_bayes(nline, a, b):
     '''
-    Adds additional fields to a vcf info line describing the likelihood of producing the site, with and without testing correction.
+    Adds additional fields to a vcf info line describing the likelihood of producing the site and predicted frequency, with and without testing correction. Uses the bayesian beta posterior mean estimator.
+    '''
+    chro, pos, rid, ref, alt, qual, rfil, info = nline.strip().split()
+    altset = alt.split(',')
+    #need alt count and depth value from info
+    iv = info.split(';')
+    dp = int(iv[0].strip("DP="))
+    arats = [float(v) for v in iv[1].strip('AF=').split(',')] 
+    if len(altset) != len(arats):
+        print('Mismatch', nline)
+
+    ninfo = ''
+    for i,ar in enumerate(arats):
+        alt_count = math.floor(ar * dp) #should always be intable.
+        #the structure of the new information will go as follows:
+        #for each alt, there will be a series of comma delineated entries
+        #that represent the most likely frequency and overall likelihood of the site
+        #this is uncorrected so don't go thinking things are so super special or anything.
+        #if I have one mutation that's an A, I'll add ";A=.003,.000001" for example.
+        likelihood = betabinom.pmf(n=dp,a=a,b=b,k=alt_count)
+        #calculate the most likely frequency. 
+        #using the simple bayesian beta posterior mean equation
+        #phat = (x + a) / (n + a + b)
+        lf = (alt_count + a) / (dp + a + b)
+        #add information to the line.
+        ninfo += ';' + altset[i] + '=f:' + str(lf) + ',l:' + str(likelihood)
+    return '\t'.join([chro, pos, rid, ref, alt, qual, rfil, info + ninfo])
+
+def add_likelihood_info_mle(nline, a, b):
+    '''
+    Adds additional fields to a vcf info line describing the likelihood of producing the site, with and without testing correction. Uses an MLE approach.
     '''
     chro, pos, rid, ref, alt, qual, rfil, info = nline.strip().split()
     altset = alt.split(',')
@@ -191,7 +222,10 @@ def main():
     for entry in pilein:
         nline, pdt = make_vcf_line(entry.strip().split(), args.mind, args.germline, pcr_duplicate_track=pdt)
         if nline != None:
-            nline = add_likelihood_info(nline, alpha, beta)
+            if args.bayes:
+                nline = add_likelihood_info_bayes(nline, alpha, beta)
+            else:
+                nline = add_likelihood_info_mle(nline, alpha, beta)
             print(nline, file = outf)
     if args.pileup != None:
         pilein.close()
