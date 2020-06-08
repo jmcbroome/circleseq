@@ -48,7 +48,7 @@ def add_likelihood_info_bayes(nline, a, b):
 
     ninfo = ''
     for i,ar in enumerate(arats):
-        alt_count = math.floor(ar * dp) #should always be intable.
+        alt_count = round(ar * dp) #should be nearly intable, but floating point math and rounding off can make problems sometimes.
         #the structure of the new information will go as follows:
         #for each alt, there will be a series of comma delineated entries
         #that represent the most likely frequency and overall likelihood of the site
@@ -78,7 +78,7 @@ def add_likelihood_info_mle(nline, a, b):
 
     ninfo = ''
     for i,ar in enumerate(arats):
-        alt_count = math.floor(ar * dp) #should always be intable.
+        alt_count = round(ar * dp) #should always be intable.
         #the structure of the new information will go as follows:
         #for each alt, there will be a series of comma delineated entries
         #that represent the most likely frequency and overall likelihood of the site
