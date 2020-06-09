@@ -18,6 +18,7 @@ def argparser():
     parser.add_argument('-c', '--cluster', type = int, help = 'Minimum distance in basepairs required between neighboring somatic mutations. Does not affect germline mutations. Default 50', default = 50)
     parser.add_argument('-g', '--badgenes', help = 'Path to a file containing undesired gene IDs to exclude. Default is None', default = None)
     parser.add_argument('-h', '--shared', help = 'Filter somatic mutations which are shared at least this many times as possible leaky germline. Default 1', default = 1)
+    parser.add_argument('-d', '--detected', type = int, help = 'Set to an integer representing the minimum times seen for a mutation to be included. Default 1', default = 1)
     args = parser.parse_args()
     return args
 
@@ -90,6 +91,7 @@ def construct_base(files, snpf = False):
     mutdf['SSN'] = (mutdf['Strain'] + mutdf["Stage"] + mutdf['SampleNum'])
     mutdf['Somatic'] = mutdf.SampleFreq < .25 #kind of an arbitrary threshold.
     mutdf['LogPredFreq'] = np.log(mutdf.PredFreq)
+    mutdf['AltCount'] = round(mutdf.SampleFreq.astype(float) * mutdf.Depth.astype(int))
     return mutdf
 
 def parse_lookupplus(path):
@@ -240,6 +242,8 @@ def filter_frame(mutdf, args):
     locvc = (mutdf[mutdf.Somatic].Chro + mutdf[mutdf.Somatic].Loc.astype(str)).value_counts() 
     targets_som = set([l for l in locvc.index if locvc[l] > 1])
     mutdf = mutdf[~mutdf.Loc.isin(targets_som)] #this will also remove germline mutations which are in the same location as any shared somatic mutation, but germline doesn't count towards sharing itself.
+    #and remove mutations which aren't seen a minimum number of times within a sample (sample frequency * depth > x)
+    mutdf = mutdf[mutdf.AltCount >= args.detected]
     return mutdf
 
 def main():
