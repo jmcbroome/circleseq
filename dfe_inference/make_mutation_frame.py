@@ -18,6 +18,8 @@ def argparser():
     parser.add_argument('-c', '--cluster', type = int, help = 'Minimum distance in basepairs required between neighboring somatic mutations. Does not affect germline mutations. Default 50', default = 50)
     parser.add_argument('-g', '--badgenes', help = 'Path to a file containing undesired gene IDs to exclude. Default is None', default = None)
     parser.add_argument('-a', '--shared', help = 'Filter somatic mutations which are shared at least this many times as possible leaky germline. Default 1', default = 1)
+    parser.add_argument('-f', '--frequency', type = int, help = 'Set to an integer value for the minimum number of consensus circles supporting an alterantive allele. Default 1', default = 1)
+    parser.add_argument('-k', '--mark_only', type = bool, help = 'Set to True to add columns indicating whether each filter would remove a given mutation. Default False', default = False)
     args = parser.parse_args()
     return args
 
@@ -65,10 +67,14 @@ def construct_base(files, snpf = False):
                         #parse the snpf information.
                         snpfd = parse_snpf(snpf)
 
-                    info = info.split(';')[:-1] #dump an empty space at the end there.
+                    info = info.split(';')#[:-1] #dump an empty space at the end there.
                     depth = int(info[0][3:])
                     sfs = [float(v) for v in info[1][3:].split(',')]
                     pfpd = {i[0]:[float(v[2:].strip("[]")) for v in i[2:].split(',')] for i in info[2:]}
+                    if pfpd == {}:
+                        print(entry)
+                        print(info)
+                        continue
                     for i, a in enumerate(alts.split(',')):
                         sf = sfs[i]
                         pf, p = pfpd[a]
@@ -220,26 +226,49 @@ def filter_frame(mutdf, args):
                     keepvec.append(False)
             else:
                 keepvec.append(True)
-    mutdf = mutdf[keepvec]
+    if args.mark_only:
+        mutdf['ClusterF:' + str(args.cluster)] = keepvec #false = removed.
+    else:
+        mutdf = mutdf[keepvec]
     #filter out genes with many mutations
     somg = mutdf[mutdf.Somatic].GID.value_counts()
-    targets = [i for i in somg.index if somg[i] > args.genecount]
-    mutdf = mutdf[~mutdf.GID.isin(targets)]
+    targets = [i for i in somg.index if somg[i] > args.genecount and i != "None"] #intergenic does not count!
+    if args.mark_only:
+        mutdf['MutGeneF:' + str(args.genecount)] =  (~mutdf.GID.isin(targets)) #false = removed.
+    else:
+        mutdf = mutdf[~mutdf.GID.isin(targets)]
     #filter out sites that are excessively high depth
-    mutdf = mutdf[mutdf.Depth <= args.maxdepth]
+    if args.mark_only:
+        mutdf['HDepF:' + str(args.maxdepth)] = (mutdf.Depth <= args.maxdepth)
+    else:
+        mutdf = mutdf[mutdf.Depth <= args.maxdepth]
     #and sites with low depth as well.
-    mutdf = mutdf[mutdf.Depth >= args.mindepth]
+    if args.mark_only:
+        mutdf['MDepF:' + str(args.mindepth)] = (mutdf.Depth > args.mindepth)
+    else:
+        mutdf = mutdf[mutdf.Depth >= args.mindepth]
     #filter out mutations belonging to genes you want to exclude, listed in a column text file of gene IDs.
     badgenes = []
     if args.badgenes != None:
         with open(args.badgenes) as inf:
             for entry in inf:
                 badgenes.append(entry.strip())
-    mutdf = mutdf[~mutdf.GID.isin(badgenes)]
+    if args.mark_only and args.badgenes != None:
+        mutdf['SGeneF'] = (~mutdf.GID.isin(badgenes)) #false = removed.
+    else:
+        mutdf = mutdf[~mutdf.GID.isin(badgenes)]
     #and remove somatic sites that are shared with any other individual
     locvc = (mutdf[mutdf.Somatic].Chro + mutdf[mutdf.Somatic].Loc.astype(str)).value_counts() 
-    targets_som = set([l for l in locvc.index if locvc[l] > 1])
-    mutdf = mutdf[~mutdf.Loc.isin(targets_som)] #this will also remove germline mutations which are in the same location as any shared somatic mutation, but germline doesn't count towards sharing itself.
+    targets_som = set([l for l in locvc.index if locvc[l] > args.shared])
+    if args.mark_only:
+        mutdf['ShareF:' + str(args.shared)] = (~mutdf.Loc.isin(targets_som))
+    else:
+        mutdf = mutdf[~mutdf.Loc.isin(targets_som)] #this will also remove germline mutations which are in the same location as any shared somatic mutation, but germline doesn't count towards sharing itself.
+    #and filter on the raw number of consensus circles supporting.
+    if args.mark_only:
+        mutdf['SampleC:'+str(args.frequency)] = (round(mutdf.SampleFreq.astype(float) * mutdf.Depth.astype(int)) >= args.frequency)
+    else:
+        mutdf = mutdf[(round(mutdf.SampleFreq.astype(float) * mutdf.Depth.astype(int)) >= args.frequency)]
     return mutdf
 
 def main():
