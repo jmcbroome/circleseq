@@ -158,7 +158,10 @@ class Coding:
                         if self.strand == '+':
                             key = (int(gi)+1, b, ab) #+1 brings it into line with the 1-based indexing of the pileup
                         elif self.strand == '-':
-                            key = (int(gi)+1, complement[b], complement[ab])
+                            #EDITING THIS LINE TO SEE IF DISCORDANCY IS AN INDEXING ISSUE
+                            #key = (int(gi)+1, complement[b], complement[ab]) 
+                            key = (int(gi), complement[b], complement[ab]) 
+
                         if intent == change:
                             effects[key] = 'synonymous' #no change, definitely okay
                         elif intent != 'Stop' and change == 'Stop': #stop gained mid-sequence, very bad
@@ -199,6 +202,9 @@ def group_data(gtf_path, ids = None):
                 if spent[0] in ['Scf_2L','Scf_2R','Scf_3L','Scf_3R','Scf_X'] and len(curgene_ents) > 0:
                     yield curgene_ents #skip scaffolds/chr4, for now at least
                 curgene_ents = []
+        #yield also at the end of iteration.
+        if spent[0] in ['Scf_2L','Scf_2R','Scf_3L','Scf_3R','Scf_X'] and len(curgene_ents) > 0:
+            yield curgene_ents #skip scaffolds/chr4, for now at least 
                                 
 def process_annd(annd, detail = False):
     #convert an annd dictoinary into a lookup+ list structure for printing to a file.
@@ -228,9 +234,6 @@ def create_lookup_plus(gtf_path, genome, outf = 'dsim_all.lookupplus', ids = Non
             cobj = Coding(cd)
             if len(cobj.extract_sequence(genome).seq)%3 != 0:
                 continue #skip ones that come out weird for whatever reason.
-            #if ids != None:
-            #    if cobj.gid not in ids:
-            #        continue
             print("Examining gene {}".format(cobj.gid))
             annd = cobj.annotate(genome, detail)
             #turn the annd into a sorted list of entries and print.
