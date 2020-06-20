@@ -9,12 +9,12 @@ def argparser():
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', '--verbose', help = 'set to True to print status updates', default = True)
     parser.add_argument('-s', '--snpeff', type = bool, help = 'Indicate whether the annotated vcf has a snpeff annotation that should be included in the frame. Default False', default = False)
-    parser.add_argument('-l', '--lookup', help = 'Path to a lookup format file used for custom mutation effect annotation. These files are created by gtf_to_lookup.py from a GTF file for your species')
+    parser.add_argument('-l', '--lookup', help = 'Path to a lookup format file used for custom mutation effect annotation. These files are created by gtf_to_lookup.py from a GTF file for your species. Optional', default = None)
     parser.add_argument('files', nargs = '+', help = 'paths to any number of annotated vcf files to include in the frame.')
     parser.add_argument('-o', '--output', help = 'Name to save the dataframe object to. Default is mutations.tsv', default = 'mutations.tsv')
     parser.add_argument('-m', '--maxdepth', type = int, help = 'Maximum depth to include in the frame. Default 2000', default = 2000)
     parser.add_argument('-n', '--mindepth', type = int, help = 'Minimum depth to include in the frame. Default 50', default = 50)
-    parser.add_argument('-t', '--genecount', type = int, help = 'Maximum number of mutations allowed in a single gene. Default 200', default = 200)
+    parser.add_argument('-t', '--genecount', type = int, help = 'Maximum number of mutations allowed in a single gene. Default 500', default = 500)
     parser.add_argument('-c', '--cluster', type = int, help = 'Minimum distance in basepairs required between neighboring somatic mutations. Does not affect germline mutations. Default 50', default = 50)
     parser.add_argument('-g', '--badgenes', help = 'Path to a file containing undesired gene IDs to exclude. Default is None', default = None)
     parser.add_argument('-a', '--shared', help = 'Filter somatic mutations which are shared at least this many times as possible leaky germline. Default 1', default = 1)
@@ -33,20 +33,21 @@ def parse_snpf(snpf):
         #the only ones I really care about are the first three fields
         #these are, respectively, the alternative, the type, and the impact.
         #lazy parsing is just to straight up return these. I can always one-hot encode later if I want.
-        altd[data[0]] = (data[1],data[2])
+        altd[data[0]] = (data[1],data[2],data[4]) #type, effect, GID, respectively.
     return altd
 
 def construct_base(files, snpf = False):
     mutdf = {k:[] for k in ['Strain','Stage','SampleNum','Chro','Loc','Ref','Alt','Depth','SampleFreq','PredFreq','Prob']}
     if snpf:
-        mutdf.update({k:[] for k in ['Type', 'Impact']})
+        mutdf.update({k:[] for k in ['Type', 'Impact', "GID"]})
     ##THIS IS CURRENTLY WRITTEN TO WORK WITH SIMULANS
     ##IT WILL NEED TO BE EDITED TO WORK WITH MELANOGASTER, IF MEL ISN'T CONSISTENT WITH THE 2/3 R/L SCHEME
     chro_lookup = {'2L':'NT_479533.1', '2R':'NT_479534.1', '3L':'NT_479535.1', '3R':'NT_479536.1', 'X':'NC_029795.1'} #a dictionary for fixing inconsistent chromosome ID's across files
 
     chro_lookup.update({v:v for v in chro_lookup.values()}) #return the same id if it's already good
     for fn in files:
-        info = fn.split('_')[1][:-4]
+        info = fn.split('_')[1]#[:-4]
+        #print(fn, info)
         strain = info[0]
         stage = info[1]
         if stage == 'f':
@@ -63,14 +64,20 @@ def construct_base(files, snpf = False):
                         chro = chro_lookup[chro]
                     #further parse the info line.
                     if snpf:
-                        info, snpf = info.split("ANN=")
-                        #parse the snpf information.
-                        snpfd = parse_snpf(snpf)
+                        if "ANN=" in info: #many lines do not receive annotation.
+                            info, snpf = info.split("ANN=")
+                            #parse the snpf information.
+                            snpfd = parse_snpf(snpf)
+                        else:
+                            snpfd = {} #need an empty dict for default get later.
 
                     info = info.split(';')#[:-1] #dump an empty space at the end there.
                     depth = int(info[0][3:])
                     sfs = [float(v) for v in info[1][3:].split(',')]
-                    pfpd = {i[0]:[float(v[2:].strip("[]")) for v in i[2:].split(',')] for i in info[2:]}
+                    try:
+                        pfpd = {i[0]:[float(v[2:].strip("[]")) for v in i[2:].split(',')] for i in info[2:] if i != ''}
+                    except:
+                        print('QC: issue parsing info {}'.format(info))
                     if pfpd == {}:
                         print(entry)
                         print(info)
@@ -90,8 +97,9 @@ def construct_base(files, snpf = False):
                         mutdf['PredFreq'].append(pf)
                         mutdf['Prob'].append(p)
                         if snpf:
-                            mutdf['Type'].append(snpfd[a][0])
-                            mutdf['Impact'].append(snpfd[a][1])
+                            mutdf['Type'].append(snpfd.get(a, ['noncoding_variant'])[0]) #a simplified use of SNPEff to make annotation easier, i don't care about various splice sites and so forth atm.
+                            mutdf['Impact'].append(snpfd.get(a, ['x','LOW'])[1])
+                            mutdf['GID'].append(snpfd.get(a, [None, None, 'none'])[2])
     mutdf = pd.DataFrame(mutdf)
     mutdf['SSN'] = (mutdf['Strain'] + mutdf["Stage"] + mutdf['SampleNum'])
     mutdf['Somatic'] = mutdf.SampleFreq < .25 #kind of an arbitrary threshold.
@@ -204,9 +212,10 @@ def get_sites(lookup):
 
 def create_frame(args):
     #this function is the first part of main, and creates and returns an unfiltered dataframe from any number of input files.
-    mutdf = construct_base(args.files)
-    lookd = parse_lookupplus(args.lookup)
-    mutdf = annotate_mutdf(mutdf, lookd) #this uses the whole proteome with no prefix, though the annotation function can be imported into an interactive environment and the prefix argument used to look at subsets of various genes
+    mutdf = construct_base(args.files, args.snpeff)
+    if args.lookup != None:
+        lookd = parse_lookupplus(args.lookup)
+        mutdf = annotate_mutdf(mutdf, lookd) #this uses the whole proteome with no prefix, though the annotation function can be imported into an interactive environment and the prefix argument used to look at subsets of various genes
     return mutdf
 
 def filter_frame(mutdf, args):
