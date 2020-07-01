@@ -13,7 +13,7 @@ def argparser():
     parser.add_argument('files', nargs = '+', help = 'paths to any number of annotated vcf files to include in the frame.')
     parser.add_argument('-o', '--output', help = 'Name to save the dataframe object to. Default is mutations.tsv', default = 'mutations.tsv')
     parser.add_argument('-m', '--maxdepth', type = int, help = 'Maximum depth to include in the frame. Default 2000', default = 2000)
-    parser.add_argument('-n', '--mindepth', type = int, help = 'Minimum depth to include in the frame. Default 50', default = 50)
+    parser.add_argument('-n', '--mindepth', type = int, help = 'Minimum depth to include in the frame. Default 20', default = 20)
     parser.add_argument('-t', '--genecount', type = int, help = 'Maximum number of mutations allowed in a single gene. Default 500', default = 500)
     parser.add_argument('-c', '--cluster', type = int, help = 'Minimum distance in basepairs required between neighboring somatic mutations. Does not affect germline mutations. Default 50', default = 50)
     parser.add_argument('-g', '--badgenes', help = 'Path to a file containing undesired gene IDs to exclude. Default is None', default = None)
