@@ -3,6 +3,7 @@
 
 import numpy as np
 import pandas as pd
+import math
 import argparse
 
 def argparser():
@@ -104,6 +105,7 @@ def construct_base(files, snpf = False):
     mutdf['SSN'] = (mutdf['Strain'] + mutdf["Stage"] + mutdf['SampleNum'])
     mutdf['Somatic'] = mutdf.SampleFreq < .25 #kind of an arbitrary threshold.
     mutdf['LogPredFreq'] = np.log(mutdf.PredFreq)
+    mutdf["Pi"] = mutdf.apply(calculate_pi_rows, axis = 1) #add the Pi statistic to each site for doing ratio calculation.
     return mutdf
 
 def parse_lookupplus(path):
@@ -172,43 +174,14 @@ def annotate_mutdf(mutdf, lookd, prefix = ''):
     mutdf[prefix+'Strand'] = strands
     return mutdf
 
-def get_sites(lookup):
-    pairs = []
-    for a in 'ACGT':
-        for b in 'ACGT':
-            if a != b:
-                pairs.append((a,b))
+def nCr(n,r):
+    f = math.factorial
+    return f(n) // f(r) // f(n-r)
 
-    def count_sites(lookup):
-        sd = {b:0 for b in pairs}
-        nd = {b:0 for b in pairs}
-        with open(lookup) as inf:
-            for entry in inf:
-                spent = entry.strip().split('\t')
-                if len(spent) != 9:
-                    continue
-                if spent[0] != 'Chro':
-                    if spent[3] != '':
-                        for v in spent[3].split(','):
-                            if v != '':
-                                key = (spent[2],v)
-                                if key in sd:
-                                    sd[key] += 1
-                        #if spent[2] in sd:
-                            #sd[spent[2]] += len([v for v in spent[-2].split(',') if v != ''])
-                    if spent[4] != '\n':
-                        for v in spent[4].split(','):
-                            if v != '':
-                                key = (spent[2],v)
-                                if key in nd:
-                                    nd[key] += 1
-                        #if spent[2] in sd:
-                            #nd[spent[2]] += len([v for v in spent[-1].strip().split(',') if v != ''])
-        return sd, nd
-    sd,nd = count_sites('dsim_all.lookupplus')
-    sync = sum(sd.values())
-    nonc = sum(nd.values())
-    return sync, nonc, sd, nd
+def calculate_pi_rows(d):
+    m = round(d.Depth * d.SampleFreq)
+    pi = (m * (d.Depth-m)) / nCr(d.Depth,2)
+    return pi
 
 def create_frame(args):
     #this function is the first part of main, and creates and returns an unfiltered dataframe from any number of input files.
