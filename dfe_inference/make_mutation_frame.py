@@ -100,7 +100,7 @@ def construct_base(files, snpf = False):
                         if snpf:
                             mutdf['Type'].append(snpfd.get(a, ['noncoding_variant'])[0]) #a simplified use of SNPEff to make annotation easier, i don't care about various splice sites and so forth atm.
                             mutdf['Impact'].append(snpfd.get(a, ['x','LOW'])[1])
-                            mutdf['GID'].append(snpfd.get(a, [None, None, 'none'])[2])
+                            mutdf['GID'].append(snpfd.get(a, [None, None, 'None'])[2])
     mutdf = pd.DataFrame(mutdf)
     mutdf['SSN'] = (mutdf['Strain'] + mutdf["Stage"] + mutdf['SampleNum'])
     mutdf['Somatic'] = mutdf.SampleFreq < .25 #kind of an arbitrary threshold.
