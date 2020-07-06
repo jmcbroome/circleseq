@@ -9,23 +9,30 @@ import argparse
 def argparser():
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--frame', help = 'Path to a mutation pandas tsv to subset.')
-    parser.add_argument('-m', '--max_freq', type = float, help = 'Maximum predicted frequency to include in the text file. Default 0.25', default = 0.25)
-    parser.add_argument('-n', '--min_freq', type = float, help = 'Minimum predicted frequency to include in the text file. Default 0', default = 0)
+    parser.add_argument('-m', '--max_freq', type = float, help = 'Maximum predicted frequency to include in the text file (mutations above are binned together into a single sample). Default 0.25', default = 0.25)
+    parser.add_argument('-n', '--min_freq', type = float, help = 'Minimum predicted frequency to include in the text file. Default 0.0001', default = 0.0001)
     parser.add_argument('-c', '--coding', help = 'Set to True to include mutations annotated as coding mutations. Default False', default = False)
+    parser.add_argument('-p', '--partitions', type = int, help = 'Set to a number of frequency partitions to divide the data into with the ID column. Default 10', default = 15)
     args = parser.parse_args()
     return args
 
-def make_txt(row):
+def make_txt(row, parts):
     '''
     Takes a row from a pandas dataframe iterator and returns a text line for this mutation.
     '''
-    rid = '_'.join([row.SSN, str(row.PredFreq)])
-    data = [row.Chro, str(row.Loc), row.Ref, row.Alt, rid] 
+    rid = None
+    for frange, label in parts.items():
+        if row.PredFreq >= frange[0] and row.PredFreq <= frange[1]:
+            rid = frange[1]
+    #if rid == None:
+        #print("Issue assigning category")
+        #rid = 'X'
+    data = [row.Chro, str(row.Loc), row.Ref, row.Alt, str(rid)] 
     return '\t'.join(data)
 
-def get_text_lines(frame):
+def get_text_lines(frame, parts):
     for i,d in frame.iterrows():
-        yield make_txt(d)
+        yield make_txt(d, parts)
 
 def main():
     args = argparser()
@@ -33,8 +40,12 @@ def main():
     mutdf = mutdf[(mutdf.PredFreq > args.min_freq) & (mutdf.PredFreq < args.max_freq)]
     if not args.coding:
         mutdf = mutdf[mutdf.Type == 'noncoding_variant']
-    for line in get_text_lines(mutdf):
-        print(line)    
+    decim = int(abs(round(np.log10(args.min_freq)))) + 1 #sig digits based on the minimum frequency.
+    nv = np.around(10**np.linspace(np.log10(args.min_freq), np.log10(args.max_freq), args.partitions), decim) #use a logarithmic space for the set of bins.
+    parts = {(nv[i-1], v):i for i,v in enumerate(nv) if i > 0} #dictionary containing values for assigning the ID columns.
+    parts.update({(nv[-1], 1):len(nv)+1}) #add a partition representing germline/high frequency mutations.
+    for line in get_text_lines(mutdf, parts):
+        print(line)
     
 if __name__ == '__main__':
     main()
