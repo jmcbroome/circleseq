@@ -14,7 +14,7 @@ import math
 def argparser():
     parser = argparse.ArgumentParser()
     #the script will try all combinations of the entries below and save the results to an output.
-    parser.add_argument('-v', '--verbose', type = bool, help = "Set to True to print status updates. Default True", default = False)
+    parser.add_argument('-v', '--verbose', action = 'store_true', help = "Print status updates.")
     parser.add_argument('-a', help = 'initial alpha guess to try', type = float, default = 0.1)
     parser.add_argument('-b', help = 'initial beta guess to try', type = float, default = 10)
     parser.add_argument('-c', '--cutoff', type = int, help = 'Minimum non-zero count value to include in the dataset. Default -1 (no filter)', default = -1)
