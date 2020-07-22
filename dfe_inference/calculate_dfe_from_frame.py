@@ -30,7 +30,7 @@ def argparser():
     parser.add_argument('-t', '--type', help = 'Choose a feature to split the mutation dataframe into for multiple runs. Optional', default = None)
     parser.add_argument('-g', '--go', help = 'Set a path to a gffdb file created by gffutils to divide mutations by GO term for analysis. Optional', default = None)
     parser.add_argument('-o', '--mode', help = 'Prefix for a target annotation column to use in the frame. Default no prefix', default = '')
-    parser.add_argument('-e', '--germline', type = bool, help = 'Set to True to infer DFE for germline mutations instead of somatic mutations (cutoff between types set by argument). Default False', default = False)
+    parser.add_argument('-e', '--germline', action = 'store_true', help = 'Use to infer DFE for germline mutations instead of somatic mutations (cutoff between types set by argument).')
     args = parser.parse_args()
     return args
 
