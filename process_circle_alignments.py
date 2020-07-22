@@ -102,7 +102,6 @@ def create_bed(aln, d, cstops):
 
 def argparser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-v', '--verbose', type = bool, help = "Set to True to print status updates. Default True", default = True)
     parser.add_argument('-r', '--reference_index', help = 'Path to a .fai produced by samtools index for checking chromosome lengths when defining features.')
     parser.add_argument('-f', '--fasta_pref', help = 'Set to a string to use as a prefix for the fasta file. Default is split', default = 'split')
     parser.add_argument('-b', '--bed_pref', help = 'Set to a string to use as a prefix for the bed file. Default is regions', default = 'regions')
