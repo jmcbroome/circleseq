@@ -16,15 +16,15 @@ import math
 
 def argparser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-v', '--verbose', type = bool, help = "Set to True to print status updates. Default True", default = True)
+    parser.add_argument('-v', '--verbose', action = 'store_true', help = "Print status updates")
     parser.add_argument('-a', '--header', help = 'File containing header text for a vcf of the given reference genome.')
     parser.add_argument('-p', '--pileup', help = 'Pileup to parse and force into a VCF format. Default is standard in', default = None)
     parser.add_argument('-o', '--output', help = 'Name of the vcf output file. Default is stdout', default = None)
-    parser.add_argument('-g', '--germline', type = bool, help = 'Set to True to retain germline mutations. Default is False and ignores high frequency mutations', default = False)
+    parser.add_argument('-g', '--germline', action = 'store_true', help = 'Retain germline mutations.')
     #parser.add_argument('-f', '--freq_cutoff', type = float, help = 'Value between 0 and 1, above which all entries are ignored. Default 1.')
     parser.add_argument('-d', '--mind', type = int, help = 'Minimum depth for somatic mutation identification. Default 10', default = 10)
     parser.add_argument('-r', '--params', nargs = 2, type = float, help = 'Alpha and beta parameters for the betabinomial')
-    parser.add_argument('-b', '--bayes', type = bool, help = 'Set to True to use the Bayesian Posterior Mean Estimator for most likely frequency. False instead uses Nelder-Mead MLE. Default True', default = True)
+    parser.add_argument('-b', '--bayes', action = 'store_false', help = 'Use Nelder-Mead MLE instead of the Bayesian Posterior Mean Estimator.')
     args = parser.parse_args()
     return args
 
