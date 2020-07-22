@@ -14,7 +14,6 @@ import re
 
 def argparser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-v', '--verbose', type = bool, help = "Set to True to print status updates. Default True", default = True)
     parser.add_argument('-c', '--consensus', help = "Set prefix of output 'sam' file for consensus alignments.")
     parser.add_argument('-t', '--threads', type = int, help = 'Set number of threads to use. Default 1', default = 1)
     parser.add_argument('bed', help = 'Path to a bed file containing coordinate information matching the primary fasta file.')
