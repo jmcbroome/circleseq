@@ -9,8 +9,6 @@ import statistics as st
 #define functions/classes
 def argparser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-v', '--verbose', type = bool, help = "Set to True to print status updates. Default True", default = True)
-    #add args
     parser.add_argument('-t', '--threshold', type = int, help = 'Set a minimum number of times a base must be seen. default 2', default = 2)
     parser.add_argument('-e', '--errors', help = 'path to input file.')
     args = parser.parse_args()
@@ -64,7 +62,6 @@ def perm_index(leng = 100, num = 3, pnum = 1000):
 
 def main():
     args = argparser()
-    #insert code
     sumerrors = {}
     for a in "ACGT":
         for b in "ACGT":
@@ -122,23 +119,6 @@ def main():
                 else:
                     # print("QC: Read is skipped for having no alts")
                     continue
-                # ref = spent[2].upper() #don't particularly care whether its forward or reverse
-                # cir = ''.join(c for c in spent[4].upper() if c in 'ACGTN.') #remove characters indicating read start or end or mapping scores or whatever.
-                # # assert len(cir) == int(spent[3])
-                # alts = [c for c in cir if c != "N"] #alts is not for iteration later
-                # realdepth = len(alts)
-                # if ref != 'N':
-                #     if realdepth > 5 and all([cir.count(base) < len(cir)/4 for base in 'ACGT']):
-                        
-                #     #counts[ref] += depth
-                #     if int(spent[3]) == len(spent[5]):
-                #         counts[ref] += len([v for v in cir if v != 'N']) #don't want to count bases the read has no information about as either reference or nonreference
-                #     #if depth == len(spent[5]): #ignore entries with indels or other complications for this iteration of the pipeline
-                #         for i, base in enumerate(cir): #may be length 1.
-                #             if base in "ACGT" and base != ref and spent[5][i] in '0123456789':
-                #                 if int(spent[5][i]) >= args.threshold:
-                #                     sumerrors[(ref,base)] += 1 
-
     print("Error Counts")
     if counts == None:
         for k,v in sumerrors.items():
