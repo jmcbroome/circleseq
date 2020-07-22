@@ -8,8 +8,8 @@ import argparse
 
 def argparser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-v', '--verbose', help = 'set to True to print status updates', default = True)
-    parser.add_argument('-s', '--snpeff', type = bool, help = 'Indicate whether the annotated vcf has a snpeff annotation that should be included in the frame. Default False', default = False)
+    parser.add_argument('-v', '--verbose', help = 'Print status updates', action = 'store_true')
+    parser.add_argument('-s', '--snpeff', action = 'store_true', help = 'Indicate whether the annotated vcf has a snpeff annotation that should be included in the frame.')
     parser.add_argument('-l', '--lookup', help = 'Path to a lookup format file used for custom mutation effect annotation. These files are created by gtf_to_lookup.py from a GTF file for your species. Optional', default = None)
     parser.add_argument('files', nargs = '+', help = 'paths to any number of annotated vcf files to include in the frame.')
     parser.add_argument('-o', '--output', help = 'Name to save the dataframe object to. Default is mutations.tsv', default = 'mutations.tsv')
@@ -20,7 +20,7 @@ def argparser():
     parser.add_argument('-g', '--badgenes', help = 'Path to a file containing undesired gene IDs to exclude. Default is None', default = None)
     parser.add_argument('-a', '--shared', help = 'Filter somatic mutations which are shared at least this many times as possible leaky germline. Default 1', default = 1)
     parser.add_argument('-f', '--frequency', type = int, help = 'Set to an integer value for the minimum number of consensus circles supporting an alterantive allele. Default 1', default = 1)
-    parser.add_argument('-k', '--mark_only', type = bool, help = 'Set to True to add columns indicating whether each filter would remove a given mutation. Default False', default = False)
+    parser.add_argument('-k', '--mark_only', action = 'store_true', help = 'Add columns indicating whether each filter would remove a given mutation instead of actually removing them.')
     args = parser.parse_args()
     return args
 
