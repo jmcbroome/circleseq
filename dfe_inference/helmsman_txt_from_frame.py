@@ -11,7 +11,7 @@ def argparser():
     parser.add_argument('-f', '--frame', help = 'Path to a mutation pandas tsv to subset.')
     parser.add_argument('-m', '--max_freq', type = float, help = 'Maximum predicted frequency to include in the text file (mutations above are binned together into a single sample). Default 0.25', default = 0.25)
     parser.add_argument('-n', '--min_freq', type = float, help = 'Minimum predicted frequency to include in the text file. Default 0.0001', default = 0.0001)
-    parser.add_argument('-c', '--coding', help = 'Set to True to include mutations annotated as coding mutations. Default False', default = False)
+    parser.add_argument('-c', '--coding', action = 'store_true', help = 'Use to include mutations annotated as coding mutations. Default excludes them')
     parser.add_argument('-p', '--partitions', type = int, help = 'Set to a number of frequency partitions to divide the data into with the ID column. Default 10', default = 15)
     args = parser.parse_args()
     return args
