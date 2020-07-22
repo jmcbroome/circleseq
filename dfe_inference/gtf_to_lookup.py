@@ -8,7 +8,7 @@ def argparser():
     parser.add_argument('-g', '--genome', help = 'path to the genome fasta')
     parser.add_argument('-i', '--ids', help = 'file with gene ids to use. Optional', default = None)
     parser.add_argument('-o', '--output', help = 'name of the output file.', default = 'v2.lookupplus')
-    parser.add_argument('-d', '--detail', type = bool, help = 'toggle to further break down nonsynonymous mutation into conservative and radical changes. Default False', default = False)
+    parser.add_argument('-d', '--detail', action = 'store_true', help = 'Use to further break down nonsynonymous mutation into conservative and radical changes.')
     args = parser.parse_args()
     return args
 
