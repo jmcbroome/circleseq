@@ -43,28 +43,28 @@ bwa index references/{reference_genome}
 
 Then simply call:
 
-snakemake -j {max_threads} {sample}\_{reference_genome}\_errors.txt
+snakemake -j {max_threads} {sample}\_{reference_genome}.txt
 
 To include the final optional graphing step (dependencies are matplotlib and seaborn), instead call:
 
-snakemake -j {max_threads} {sample}\_{reference_genome}\_errors.png
+snakemake -j {max_threads} {sample}\_{reference_genome}.png
 
-Or run the graph_errors.py script separately on the error table resulting from the above pipeline.
+Or run the graph_mutations.py script separately on the error table resulting from the above pipeline.
 
 Again, replacing bracketed values with the name of your sample, the name of your reference genome file, and with the maximum threads value being the maximum number of threads available to the pipeline for processing. Default value for max_threads is 1.
 Add the argument "--use-conda circleseq.yml" as an alternative to global installation of requisite packages, or activate the environment with conda and call snakemake from within it.
 
-Note that "errors" here refers to a summary of discovered mutations within your sample, along with likely unfiltered mismapping errors and so forth. Downstream analysis is generally performed using the constructed consensus bam, or the accompanying pileup variants.txt.
+Note that the mutations here may include unfiltered mismapping errors and similar. Downstream analysis should be generally performed using the constructed consensus bam, or the accompanying pileup variants.txt.
 
 ## Test Case
 Reference and simulated input data have been provided to run an example to ensure correctly installed dependencies. 
 
 To call the test case, simply input at the command line:
 
-"snakemake simulated_yeast_errors.txt"
+"snakemake simulated_yeast.txt"
 
 Or
 
-"snakemake simulated_yeast_errors.png"
+"snakemake simulated_yeast.png"
 
 To include the optional graphing step.

@@ -1,6 +1,6 @@
 rule all:
     input:
-        "{sample}_{reference}_errors.png"
+        "{sample}_{reference}.png"
 rule bwa_map:
     input:
         "input/{sample}_R1.fq.gz",
@@ -66,17 +66,17 @@ rule mpileup:
         "{sample}_{reference}_variants.txt"
     shell:
         "samtools mpileup -B -f references/{wildcards.reference}.fa {input} > {output}"
-rule count_errors:
+rule count_mutations:
     input:
         "{sample}_{reference}_variants.txt"
     output:
-        "{sample}_{reference}_errors.txt"
+        "{sample}_{reference}.txt"
     shell:
-        "python3 count_errors.py -t 2 -e {input[0]} > {output}"
-rule graph_errors:
+        "python3 count_mutations.py -t 2 -e {input[0]} > {output}"
+rule graph_mutations:
     input:
-        "{sample}_{reference}_errors.txt"
+        "{sample}_{reference}.txt"
     output:
-        "{sample}_{reference}_errors.png"
+        "{sample}_{reference}.png"
     shell:
-        "python3 graph_errors.py {input}"
+        "python3 graph_mutations.py {input}"
