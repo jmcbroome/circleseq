@@ -7,7 +7,6 @@
 import argparse
 import skbio.alignment as skaln
 from multiprocessing import Pool
-from functools import partial
 import re
 
 def argparser():

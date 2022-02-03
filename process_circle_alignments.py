@@ -12,7 +12,6 @@ def create_fasta(entry, name):
     Additionally, if more bases are trimmed than belong to the primary alignment match, an additional split will be performed on the long trimmed section of the length of the primary alignment under the circle assumption.
     '''
     cigar = re.findall(r'(\d+)(\w)', entry[5])
-    #seq is entry[9], qual is entry[10]
     indeces = [0] + [int(i[0]) for i in cigar] + [-1]
     nseqs, nquals = [[entry[v][indeces[i]:indeces[i] + indeces[i+1]]
         for i in range(len(indeces)-1)] 
@@ -103,8 +102,8 @@ def create_bed(aln, d, cstops):
 def argparser():
     parser = argparse.ArgumentParser()
     parser.add_argument('-r', '--reference_index', help = 'Path to a .fai produced by samtools index for checking chromosome lengths when defining features.')
-    parser.add_argument('-f', '--fasta_pref', help = 'Set to a string to use as a prefix for the fasta file. Default is split', default = 'split')
-    parser.add_argument('-b', '--bed_pref', help = 'Set to a string to use as a prefix for the bed file. Default is regions', default = 'regions')
+    parser.add_argument('-f', '--fasta_pref', help = 'Choose a name for the fasta file. Default is split.fa', default = 'split.fa')
+    parser.add_argument('-b', '--bed_pref', help = 'Choose a name for the bed file. Default is regions.bed', default = 'regions.bed')
     parser.add_argument('-d', '--distance', type = int, help = 'Set to a value of distance around alignments to use for local area remapping of secondary alignments downstream.', default = 10)
     parser.add_argument('sam', help = 'Path to files containing the primary single alignments for all reads')
     args = parser.parse_args()
@@ -112,8 +111,6 @@ def argparser():
 
 def main():
     args = argparser()
-    outf_name = args.fasta_pref# + '.fa'
-    outb_name = args.bed_pref# + '.bed'
     seen = set()
     cstops = {}
     with open(args.reference_index) as inf:
@@ -121,8 +118,8 @@ def main():
             spent = entry.strip().split()
             cstops[spent[0]] = int(spent[1])
     with open(args.sam) as samf:
-        with open(outf_name, 'w+') as outf:
-            with open(outb_name, 'w+') as outb:
+        with open(args.fasta_pref, 'w+') as outf:
+            with open(args.bed_pref, 'w+') as outb:
                 for entry in samf:
                     if entry[0] != '@': #skip headers
                         spent = entry.strip().split()

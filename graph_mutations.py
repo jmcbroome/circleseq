@@ -12,7 +12,6 @@ def graph(errors, total, output):
         yv.append(float(v[1]))
     plt.figure(figsize = [11,5])
     panel1 = plt.axes([1/10,.5/5,8/10,4/5])
-    # panel1.get_yaxis().get_major_formatter().set_scientific(True)
     panel1.ticklabel_format(axis = 'y', style = 'sci', scilimits = (0,0))
     sns.barplot(x=xv, y=yv, color = 'teal', ax = panel1)
     panel2 = plt.axes([7.8/10,3.8/5,1/10,.5/5])
@@ -22,7 +21,6 @@ def graph(errors, total, output):
 
 def argparser():
     parser = argparse.ArgumentParser()
-    # parser.add_argument('-v', '--verbose', type = bool, help = "Set to True to print status updates. Default True", default = True)
     parser.add_argument('input', help = 'path to input error file for graphing')
     parser.add_argument('-o', '--output', help = 'output name. default is input name with .png extension instead of .txt', default = None)
     args = parser.parse_args()
@@ -30,7 +28,6 @@ def argparser():
 
 def main():
     args = argparser()
-    #insert code
     errors = {}
     with open(args.input, 'r') as ein:
         for entry in ein:
