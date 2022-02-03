@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
 
-#import
 import argparse
-import sys
 import numpy as np
 import statistics as st
 
-#define functions/classes
 def argparser():
     parser = argparse.ArgumentParser()
     parser.add_argument('-t', '--threshold', type = int, help = 'Set a minimum number of times a base must be seen. default 2', default = 2)

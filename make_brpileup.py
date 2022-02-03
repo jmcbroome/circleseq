@@ -4,13 +4,11 @@
 #use N's at any point that's not very certain by whatever metric.
 #IMPORTANT: SCRIPT ASSUMES PHRED + 33 QUALITY ENCODING. WILL BREAK WITH OTHER ENCODINGS.
 
-#import
 import argparse
 import skbio.alignment as skaln
 from multiprocessing import Pool
 from functools import partial
 import re
-#define functions/classes
 
 def argparser():
     parser = argparse.ArgumentParser()
@@ -24,7 +22,6 @@ def argparser():
 
 def rand_aln_p(bl, sl):
     #use a probability function that yields the chance that SL will randomly align perfectly to BL as a filter for too-short fragments. 
-    # assert sl < bl
     if sl < bl:
         return 1-(1-.25**sl)**(bl-sl)
     else:        
@@ -91,18 +88,12 @@ def generate_consensus(region, seqs):
         b,q = best_base(bcs)
         consensus.append(b)
         quality.append(str(q))
-    #try an additional step removing useless ns from the end to make certain stuff easier. just the end because don't want to mess with trying to update the index of the start.
-    #stripped = ''.join(consensus).rstrip("N")
-    #stripped_quality = quality[:len(stripped)]
-    #assert len(stripped) = len(stripped_quality)
     return [''.join(consensus), ''.join(quality)], flag
-    #return stripped, stripped_quality
 
 def best_base(basecounts):
     #if all are 0, return an N.
     if all([c==0 for c in basecounts.values()]):
         return ('N',0)
-    #nonz = [(b,c) for b,c in basecounts.items() if c > 0]
     nonz = sorted([(b,c) for b,c in basecounts.items() if c > 0],key = lambda x:x[1], reverse = True)
     if len(nonz) == 1:
         return nonz[0]
@@ -179,7 +170,6 @@ def main():
     spl_d = splitread(args.split) #values are all split up short sequences assigned to that read name and their quality scores
     with open(args.consensus, 'w+') as outf:
         with Pool(args.threads) as p:
-            # mapper_d = partial(mapper, bed_d = bed_d, reg_d = reg_d, spl_d = spl_d)
             arguments = [(k, bed_d[k], reg_d[k], spl_d[k]) for k in spl_d.keys() if k in reg_d and k in bed_d]
             samstrs = p.imap_unordered(mapper, arguments)
             for s in samstrs:

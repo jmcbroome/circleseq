@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 
-#import
 import argparse
 import matplotlib.pyplot as plt
 import seaborn as sns
-#define functions/classes
 
 def graph(errors, total, output):
     xv = []
