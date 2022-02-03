@@ -66,7 +66,7 @@ def main():
                 sumerrors[(a,b)] = 0
     counts = {k:0 for k in 'ACGT'}
     pcr_duplicate_track = {} #using dynamic programming to save compute cycles for this qc measure
-    with open(args.errors) as ef:
+    with open(args.mutations) as ef:
         for entry in ef:
             spent = entry.strip().split()
             ref = spent[2].upper()

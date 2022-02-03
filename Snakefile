@@ -72,7 +72,7 @@ rule count_mutations:
     output:
         "{sample}_{reference}.txt"
     shell:
-        "python3 count_mutations.py -t 2 -e {input[0]} > {output}"
+        "python3 count_mutations.py -t 2 -m {input[0]} > {output}"
 rule graph_mutations:
     input:
         "{sample}_{reference}.txt"

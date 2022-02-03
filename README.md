@@ -23,6 +23,11 @@ Ensure external software dependences are installed and on your shell's path.
 
 Package dependencies can be installed independently or the circleseq.yml environment may be used via conda.
 
+```
+conda create -c conda-forge -c bioconda -n circleseq snakemake scikit-bio biopython seaborn samtools bedtools bwa
+conda activate circleseq
+```
+
 ## Formatting Files
 The snakefile as it stands expects input files in the format of {sample}\_R1.fa and {sample}\_R2.fa under the "input" file folder. 
 Reference data is expected under references/{reference_genome}.fa, replacing bracketed values with the specific values of your sample and the reference genome name.
@@ -61,10 +66,6 @@ Reference and simulated input data have been provided to run an example to ensur
 
 To call the test case, simply input at the command line:
 
-"snakemake simulated_yeast.txt"
-
-Or
-
-"snakemake simulated_yeast.png"
-
-To include the optional graphing step.
+```
+snakemake -c1 simulated_yeast.txt
+```
