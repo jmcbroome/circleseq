@@ -21,7 +21,7 @@ def graph(errors, total, output):
 
 def argparser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('input', help = 'path to input error file for graphing')
+    parser.add_argument('input', help = 'path to input mutation file for graphing')
     parser.add_argument('-o', '--output', help = 'output name. default is input name with .png extension instead of .txt', default = None)
     args = parser.parse_args()
     return args

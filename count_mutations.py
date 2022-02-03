@@ -7,7 +7,7 @@ import statistics as st
 def argparser():
     parser = argparse.ArgumentParser()
     parser.add_argument('-t', '--threshold', type = int, help = 'Set a minimum number of times a base must be seen. default 2', default = 2)
-    parser.add_argument('-e', '--errors', help = 'path to input file.')
+    parser.add_argument('-m', '--mutations', help = 'path to input file.')
     args = parser.parse_args()
     return args
 
