@@ -56,12 +56,12 @@ rule samprocess:
         "{sample}_{reference}_consensus.sam",
         "references/{reference}.fa.fai"
     output:
-        "{sample}_{reference}_sorted.bam"
+        "{sample}_{reference}.sorted.bam"
     shell:
         "samtools view -ht {input[1]} {input[0]} | samtools view -Sb | samtools sort > {output}"
 rule mpileup:
     input:
-        "{sample}_{reference}_sorted.bam"
+        "{sample}_{reference}.sorted.bam"
     output:
         "{sample}_{reference}_variants.txt"
     shell:
