@@ -13,6 +13,7 @@ class Read:
         self.name = n
         self.seq = seq
         self.qual = qual
+
     def rotate(self):
         """
         Randomly chooses a split point, and appends everything before the split point to the string after the split point, then returns the rotated string.
@@ -24,7 +25,9 @@ class Read:
             return (self.seq,self.qual)
         ns = self.seq[split:] + self.seq[:split]
         nq = self.qual[split:] + self.qual[:split]
+        assert len(ns) == len(nq)
         return (ns,nq)
+
     def write(self,outf=sys.stdout):
         print(self.name,file=outf)
         print(self.seq,file=outf)
@@ -47,8 +50,8 @@ def generate_duplicates(r1,r2,mu):
     for c in range(count):
         n1,q1 = r1.rotate()
         n2,q2 = r2.rotate()
-        nr1 = Read(r1.name + "_" + str(c), n1, q1)
-        nr2 = Read(r2.name + "_" + str(c), n2, q2)
+        nr1 = Read(r1.name + "-" + str(c), n1, q1)
+        nr2 = Read(r2.name + "-" + str(c), n2, q2)
         nreads.append((nr1,nr2))    
     return nreads, count
 
