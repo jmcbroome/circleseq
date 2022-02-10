@@ -1,0 +1,4 @@
+input/*fq.gz
+*.bam
+*.ipynb
+.ipynb_checkpoints/*
