@@ -5,6 +5,8 @@
 #IMPORTANT: SCRIPT ASSUMES PHRED + 33 QUALITY ENCODING. WILL BREAK WITH OTHER ENCODINGS.
 
 import argparse
+
+from pandas import qcut
 import skbio.alignment as skaln
 from multiprocessing import Pool
 import re
@@ -144,13 +146,30 @@ def basecount(region, seqs):
                         print("Error trying to count alignment to region", region, aln.aligned_target_sequence, aln.query_sequence, aln['cigar'])#, index, i, rb, qb)
     return counts, flag
 
-def sam_entry(seqqual, coord, name, flag = False):
+def trim_sam(seqqual, coord):
+    #remove leading and trailing bases not actually mapped from the consensus alignment and update the starting location and total matched length appropriately.
+    qual = seqqual[1]
+    #some tricky code from stackoverflow... one line generator expressions!
+    front = next((i for i, ch  in enumerate(qual) if ch != '0'),0)
+    back = len(qual)-next((i for i, ch  in enumerate(qual[::-1]) if ch != '0'),0)
+    new_seq = seqqual[0][front:back]
+    new_qual = qual[front:back]
+    assert len(new_seq) == len(new_qual)
+    new_coords = [coord[0]]
+    new_coords.append(str(int(coord[1]) + front))
+    new_coords.append(str(int(coord[2]) - back))
+    return tuple(new_coords), (new_seq,new_qual)
+
+def sam_entry(seqqual, coord, name, flag = False, trim = True):
     #build a fake sam consensus entry.
     coord = coord[0]
     if not flag:
         fv = '0'
     else:
         fv = '512' #ones with issues will be flagged as being below alignment quality
+    #remove bases with quality 1 or less from the data if requested and update alignment coordinates appropriately.
+    if trim:
+        coord, seqqual = trim_sam(seqqual, coord)
     return name + "\t" + fv + "\t" + coord[0] + '\t' + str(coord[1]) + '\t60\t' + str(len(seqqual[0])) + "M\t*\t0\t0\t" + seqqual[0] + '\t' + seqqual[1]
 
 def mapper(input_iter):

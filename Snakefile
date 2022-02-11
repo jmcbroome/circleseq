@@ -56,9 +56,24 @@ rule samprocess:
         "{sample}_{reference}_consensus.sam",
         "references/{reference}.fa.fai"
     output:
-        "{sample}_{reference}.sorted.bam"
+        temp('{sample}_{reference}_consensus_unfiltered.bam')
     shell:
-        "samtools view -ht {input[1]} {input[0]} | samtools view -Sb | samtools sort > {output}"
+        "samtools view -ht {input[1]} {input[0]} | samtools view -Sb > {output}"
+rule fixmate:
+    input:
+        '{sample}_{reference}_consensus_unfiltered.bam'
+    output:
+        temp('{sample}_{reference}_fixmate.bam')
+    shell:
+        'samtools collate -O {input} tmp | samtools fixmate - {output[0]}'
+rule rmdup:
+    input:
+        '{sample}_{reference}_fixmate.bam'
+    output:
+        '{sample}_{reference}.sorted.bam',
+        '{sample}_{reference}_dupstats.txt'
+    shell:
+        'samtools sort {input} | samtools markdup -r -f {output[1]} - {output[0]}'
 rule mpileup:
     input:
         "{sample}_{reference}.sorted.bam"
