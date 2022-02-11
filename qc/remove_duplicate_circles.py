@@ -1,141 +1,79 @@
 #!/usr/bin/env python3
 
-#script to remove Ns, bases without enough support from the original consensus reads, and PCR duplicates from the raw mpileup of consensus reads.
-#additionally filters on depth to return only regions where somatic and germline mutations can be distinguished and pcr duplicates identified
+#script to remove consensus sequences which are identical to or encompassed by other consensus sequences
+#this should conseratively remove all pcr duplicates and possibly some weaker data if it's shorter in length
 
-#import
 import argparse
-import sys
 import numpy as np
-import statistics as st
+import pysam
 
 def argparser():
     parser = argparse.ArgumentParser()
     parser.add_argument('-t', '--threshold', type = int, help = 'Set a minimum number of times a base must be seen. default 2', default = 2)
-    parser.add_argument('-i', '--input', help = 'path to input file.', default = None)
-    parser.add_argument('-o', '--output', help = 'name of output pileup, default is stdout', default = None)
-    parser.add_argument('-s', '--stats', help = 'save statistics on number of reads affected and total coverage removed')
+    parser.add_argument('-i', '--input', help = 'Path to input bam.', required = True)
+    parser.add_argument('-o', '--output', help = 'Path to output bam. Default is input with ".dedup" added before the file extension.', default = None)
+    parser.add_argument('-s', '--stats', help = 'Save statistics on number of alignments affected and total coverage removed to the target file.', default = None)
     args = parser.parse_args()
     return args
 
-def count_bases(path):
-    counts = {k:0 for k in ['A','C','G','T']}
-    with open(path) as inf:
-        for line in inf:
-            if line[0] != '>':
-                for base in line.strip():
-                    if base in counts:
-                        counts[base] += 1
-    return counts
+def is_encompassed(r1,r2):
+    #we consider r2 to be encompassed by r1 if they have exactly the same length or r2 is shorter
+    #and r2 ends at the same point or earlier
+    #this is a conservative filtering step.
+    return (r1.reference_start <= r2.reference_start and r2.query_length <= r1.query_length and r1.reference_start + r1.query_length >= r2.reference_start + r2.query_length)
 
-#the following functions are intended to construct a tracking structure which can identify and ignore likely PCR duplicate errors
-#these errors generally manifest as a series of alternative alleles which come from adjacently mapping consensus sequences, e.g. a line of alternative alleles will appear as "......AAAAAA......"
-#in this case, we only want to count the single A error rather than counting it 5 times.
-#we use a permuter which generates random sequences with an equal length and number of alternatives, measures median distance between each instances of the alternative allele, and determines whether a given read has an average density of alternative alleles which falls below this threshold
-def get_dindex(altstring):
-    distances = {}
-    for i,base in enumerate(altstring):
-        if base != '.':
-            if base not in distances:
-                last = i
-                distances[base] = []
-            else:
-                distances[base].append(i-last)
-                last = i
-    dindex = {}
-    for k,v in distances.items():
-        if len(v)> 0:
-            dindex[k] = st.median(v)
-    return dindex
-
-def make_random(length = 100, bases_to_use = 'A', num = 5):
-    string = list('.' * length)
-    for b in bases_to_use:
-        locs = np.random.choice(length,num,replace = False)
-        for l in locs:
-            string[l] = b
-    return ''.join(string)
-
-def perm_index(leng = 100, num = 3, pnum = 1000):
-    indeces = []
-    for p in range(pnum):
-        tstr = make_random(length = leng, num = num, bases_to_use='A')
-        index = get_dindex(tstr)
-        indeces.append(index['A'])
-    return np.percentile(indeces,5)
+def write_stats(reads,outfname,mean_prior,mean_post):
+    outf = open(outfname,'w+')
+    print("Number of Reads Removed: " + str(len(reads)),file=outf)
+    print("Mean Length of Reads Removed: " + str(np.mean([r.query_length for r in reads])),file=outf)
+    print("Mean Coverage Initial: " + str(mean_prior),file=outf)
+    print("Mean Coverage After Removal: " + str(mean_post),file=outf)
 
 def main():
     args = argparser()
-    good_entries = []
+    inputf = pysam.AlignmentFile(args.input,'rb')
+    mapped_chromosomes = inputf.references
+    bad_reads = set()
+    total_covered = 0
+    total_count = 0
+    post_covered = 0
+    for mc in mapped_chromosomes:
+        #get the set of reads aligned to each base in the chromosome
+        #sort by size of alignment and ask whether each is encompassed by the larger reads in their set
+        #if they are, tag them and ignore them in the future and don't output them
+        #if they aren't, they can be saved to the output
+        for pcol in inputf.pileup(mc):
+            #previously marked reads can also be ignored as candidates for encompasser, since their encompasser will always encompass anything they would encompass
+            #print(dir(pcol.pileups[0].alignment))
+            allreads = pcol.pileups
+            total_covered += len(allreads)
+            total_count += 1
+            reads = sorted([p.alignment for p in allreads if p.alignment not in bad_reads], key=lambda x:x.query_length)
+            icheck = 1
+            removed_here = 0
+            for r in reads:
+                for br in reads[icheck:]:
+                    if is_encompassed(br,r):
+                        bad_reads.add(r)
+                        removed_here += 1
+                        break
 
-    pcr_duplicate_track = {} #using dynamic programming to save compute cycles for this qc measure
-    if args.input == None:
-        inputf = sys.stdin
-    else:
-        inputf = open(args.input)
-    for entry in inputf:
-        spent = entry.strip().split()
-        ref = spent[2].upper()
-        if len(spent) > 4 and ref != "N": #ignore empty lines from end of files etc
-            spent = entry.strip().split()
-            alts = [b for b in spent[4] if b in 'ACGTN.']
-            quals = spent[5]
-            assert len(alts) == len(quals)
-            nalts = ''
-            nquals = ''
-            for i, base in enumerate(alts):
-                if int(quals[i]) >= args.threshold and base != 'N': #strip out Ns and low quality alleles
-                    nalts += base
-                    nquals += quals[i]
-            #apply filters for calling mutations here.
-            #first, the depth must be at least five in order to differentiate between germline and somatic mutations.
-            #depth being the non-N content of the alternative allele string.
-            #second, any mutations which exist at higher than a 25% frequency in the string are probably germline and should be ignored for somatic mutation analysis.
-            if len(nalts) > 5 and all([nalts.count(b) < len(nalts)/4 for b in 'ACGT']):
-                #now, apply the pcr duplicate permutation filter structure using functions above.
-                skip = '' #record no more than one of the bases that will be included here because of pcr duplicate inflation.
-                dindeces = get_dindex(nalts)
-                for base in 'ACGT':
-                    basecount = nalts.count(base)
-                    if 2 <= basecount <= len(nalts)/4: #doesn't make sense to calculate for singletons, which I intend to skip by default now.
-                        key = (len(nalts), nalts.count(base))
-                        if key not in pcr_duplicate_track:
-                            pcr_duplicate_track[key] = perm_index(leng = key[0], num = key[1])
-                        thresh = pcr_duplicate_track[key]
-                        if dindeces[base] < thresh: #less than 5% chance of getting a cluster like this. Lock this one to 1 instance
-                            #print("QC: Base is skipped for clustering")
-                            skip += base
-                    else:
-                        #print("QC: Base is singleton or too high frequency in pileup")
-                        skip += base
-                #now actually go through and count the scattered mutations.
-                recorded = []
-                dnalts = ''
-                dnquals = ''
-                for i,base in enumerate(nalts):
-                    if base in skip and base in recorded:
-                        continue
-                    recorded.append(base) #it can only go in once if it's in skip from the pcr duplicate remover.
-                    dnalts += base
-                    dnquals += str(nquals[i])
-                #reconstruct the entry and append it to the output.
-                nent = spent
-                nent[4] = dnalts
-                nent[5] = dnquals
-                nent[3] = len(dnalts)
-                good_entries.append('\t'.join([str(v) for v in nent]))
-            else:
-                # print("QC: Read is skipped for having no alts")
-                continue
+                icheck += 1
+            post_covered += len(reads) - removed_here
     if args.output == None:
-        outf = sys.stdout
+        outputname = args.input[:-4] + ".dedup.bam"
     else:
-        outf = open(args.output, 'w+')
-    for nen in good_entries:
-        print(nen, file = outf)   
-    if args.input != None:
-        inputf.close()
-    elif args.output != None:
-        outf.close()
+        outputname = args.output
+    outputf = pysam.AlignmentFile(outputname,'wb',template=inputf)
+    #finally, go over it again and write out every read that passed muster.
+    inputf.reset()
+    for read in inputf.fetch():
+        if read not in bad_reads:
+            outputf.write(read)
+
+    if args.stats != None:
+        write_stats(bad_reads, args.stats, total_covered/total_count, post_covered/total_count)    
+    inputf.close()
+    outputf.close()
 if __name__ == "__main__":
     main()
