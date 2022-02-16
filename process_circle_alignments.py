@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 
-#import
 import argparse
 import re
 from Bio import pairwise2
-#define functions/classes
 
 def create_fasta(entry, name):
     '''
@@ -42,18 +40,12 @@ def additional_split(entry):
         return entry #whole thing mapped, probably from a repetitive region, just throw it back
     #find the largest span in the cigar, if its an S do another splitting step based on the results of find_align
     big = max(enumerate(cigar), key = lambda x:int(x[1][0]))
-    # print(cigar)
-    # print(big)
-
     if big[1][1] == 'S': #split this big one further.
         #grab the biggest matching region. which should also be the only one in this case.
-        # print(cigar)
         match = max([(i,c) for i,c in enumerate(cigar) if c[1] == 'M'], key = lambda x:int(x[1][0]))
-        # print('match', match)
         assert int(match[1][0]) <= int(big[1][0]) #should definitely be true if we got here.
         #now split up the sequence based on the cigar.
         indeces = [0] + [int(i[0]) for i in cigar] + [-1]
-        # print(indeces)
         nseqs = [entry[9][indeces[i]:indeces[i] + indeces[i+1]]
             for i in range(len(indeces)-1)] 
         #feed the appropriate subsequences to find_align
@@ -88,8 +80,9 @@ def find_align(bigseq, smallseq):
     return [aln[-2], aln[-1]-aln[-2], len(bigseq)-aln[2]]
 
 def create_bed(aln, d, cstops):
-    #create a bed entry based on alignment plus distance
-    #used downstream for retrieving areas of genome for local realignment.
+    """
+    Create a bed entry based on alignment plus distance. Used downstream for retrieving areas of genome for local realignment.
+    """
     #bed format is chromosome (or in this case region or scaffold or whatever.), name, start, stop
     #rind is the .fai file that tells me where my boundaries are for defining the bed
     name = aln[0]

@@ -116,7 +116,7 @@ def main():
                 else:
                     # print("QC: Read is skipped for having no alts")
                     continue
-    print("Error Counts")
+    print("Mutation Counts")
     if counts == None:
         for k,v in sumerrors.items():
             print(k, '\t', v)

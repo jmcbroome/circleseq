@@ -22,13 +22,19 @@ def argparser():
     return args
 
 def rand_aln_p(bl, sl):
-    #use a probability function that yields the chance that SL will randomly align perfectly to BL as a filter for too-short fragments. 
+    """
+    This simplified function yields the chance that a short sequence will randomly align to a longer sequence when both are composed of random letters. 
+    Used to filter fragments that are too short to be reliably mappable over the reference region.
+    """
     if sl < bl:
         return 1-(1-.25**sl)**(bl-sl)
     else:        
         return 1-(1-.25**bl)**(sl-bl)
 
 def phred_code_qual(sym):
+    """
+    Convert between phred quality encodings (string character vs integer value).
+    """
     if isinstance(sym, str):
         return ord(sym) - 33
     elif isinstance(sym, int):
@@ -38,6 +44,9 @@ def phred_code_qual(sym):
         raise ValueError
 
 def bedread(bed_path):
+    """
+    Read a named bed file (has a fourth "name" column) in as a simple dictionary of tuple locations corresponding to names. Assumes unique names.
+    """
     bd = {}
     with open(bed_path) as bedf:
         for entry in bedf:
@@ -50,6 +59,9 @@ def bedread(bed_path):
     return bd
 
 def regionread(region_path):
+    """
+    Read a fasta in as a simple dictionary. Used to process reference sequences for local realignment.
+    """
     rd = {}
     cur = None
     with open(region_path) as regf:
@@ -61,6 +73,9 @@ def regionread(region_path):
     return rd
 
 def splitread(split_path):
+    """
+    Read a fastq in as a simple dictionary. Used to process fragments for local realignment.
+    """
     sd = {}
     cur = None
     with open(split_path) as splf:
@@ -80,6 +95,9 @@ def splitread(split_path):
     return sd
 
 def generate_consensus(region, seqs):
+    """
+    Compile a consensus sequence from local alignments.
+    """
     region_counts, flag = basecount(region,seqs)
     #to create the consensus, simply iterate through region counts and indeces.
     consensus = []
@@ -92,6 +110,9 @@ def generate_consensus(region, seqs):
     return [''.join(consensus), ''.join(quality)], flag
 
 def best_base(basecounts):
+    """
+    Identify the base with the highest support for a given location. Used to compile consensus sequences.
+    """
     #if all are 0, return an N.
     if all([c==0 for c in basecounts.values()]):
         return ('N',0)
@@ -104,6 +125,12 @@ def best_base(basecounts):
         return ('N',0) 
 
 def basecount(region, seqs):
+    """
+    Perform a local smith-waterman realignment of sequence fragments to the targeted reference region and compile a consensus sequence from the resulting alignments. 4
+    Removes fragments that can't be reliably mapped locally. 
+    Ignores fragments which align with an indel and flags for quality control. Additionally flags poorly aligned consensi.
+    Ignores bases which are below a quality score of 13 when compiling a consensus.
+    """
     counts = {i:{b:0 for b in 'ACGT'} for i in range(len(region)+1)}
     flag = False #flag is a bool representing whether this particular sequence had an issue of any kind. Used to flag sam output.
     #print("ErrorChecker from basecount in make_brpileup: Number of sequences, lengths of sequences", len(seqs), [len(v[0]) for v in seqs])
@@ -147,6 +174,9 @@ def basecount(region, seqs):
     return counts, flag
 
 def trim_sam(seqqual, coord):
+    """
+    Remove no-information Ns and 0s from the alignment before saving output. Used as a final step for more parseable output.
+    """
     #remove leading and trailing bases not actually mapped from the consensus alignment and update the starting location and total matched length appropriately.
     qual = seqqual[1]
     #some tricky code from stackoverflow... one line generator expressions!
@@ -161,7 +191,9 @@ def trim_sam(seqqual, coord):
     return tuple(new_coords), (new_seq,new_qual)
 
 def sam_entry(seqqual, coord, name, flag = False, trim = True):
-    #build a fake sam consensus entry.
+    """
+    Construct a new sam entry from a compiled consensus sequence. Flag consensi which encountered low alignment quality problems in the local realignment step as 512 (failed QC).
+    """
     coord = coord[0]
     if not flag:
         fv = '0'
@@ -173,6 +205,9 @@ def sam_entry(seqqual, coord, name, flag = False, trim = True):
     return name + "\t" + fv + "\t" + coord[0] + '\t' + str(coord[1]) + '\t60\t' + str(len(seqqual[0])) + "M\t*\t0\t0\t" + seqqual[0] + '\t' + seqqual[1]
 
 def mapper(input_iter):
+    """
+    Coordinator function for consensus construction and output.
+    """
     k, coord, reg, splts = input_iter
     cons, flag = generate_consensus(reg, splts) #version of the reference with either Ns for ambiguous/no information or the 
     samstr = sam_entry(cons, coord, k, flag)
