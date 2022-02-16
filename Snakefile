@@ -32,7 +32,7 @@ rule makefasta:
         temp("{sample}_{reference}_reference.fa")
     shell:
         "bedtools getfasta -fi {input[1]} -bed {input[0]} -fo {output} -name"
-rule make_brpileup:
+rule compile_consensus:
     input:
         "{sample}_{reference}_split.fa",
         "{sample}_{reference}_regions.bed",
@@ -43,7 +43,7 @@ rule make_brpileup:
         "{sample}_{reference}_refpileup_benchmark.tsv"
     threads: 20
     shell:
-        "python3 make_brpileup.py -t {threads} -c {output} {input[1]} {input[2]} {input[0]}"
+        "python3 compile_consensus.py -t {threads} -c {output} {input[1]} {input[2]} {input[0]}"
 rule index:
     input:
         "references/{reference}.fa"
