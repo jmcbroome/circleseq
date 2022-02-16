@@ -56,27 +56,27 @@ rule samprocess:
         "{sample}_{reference}_consensus.sam",
         "references/{reference}.fa.fai"
     output:
-        temp('{sample}_{reference}_consensus_unfiltered.bam')
+        '{sample}_{reference}.sorted.bam'
     shell:
-        "samtools view -ht {input[1]} {input[0]} | samtools view -Sb > {output}"
-rule fixmate:
+        'samtools view -ht {input[1]} {input[0]} | samtools view -Sb | samtools sort > {output}'
+rule samindex:
     input:
-        '{sample}_{reference}_consensus_unfiltered.bam'
+        '{sample}_{reference}.sorted.bam'
     output:
-        temp('{sample}_{reference}_fixmate.bam')
+        '{sample}_{reference}.sorted.bam.bai'
     shell:
-        'samtools collate -O {input} tmp | samtools fixmate - {output[0]}'
-rule rmdup:
+        'samtools index {input}'
+rule remove_duplicates:
     input:
-        '{sample}_{reference}_fixmate.bam'
-    output:
         '{sample}_{reference}.sorted.bam',
-        '{sample}_{reference}_dupstats.txt'
+        '{sample}_{reference}.sorted.bam.bai'
+    output:
+        '{sample}_{reference}.sorted.dedup.bam'
     shell:
-        'samtools sort {input} | samtools markdup -r -f {output[1]} - {output[0]}'
+        'python3 qc/remove_duplicate_circles.py -i {input[0]} -s dedup_stats.log'
 rule mpileup:
     input:
-        "{sample}_{reference}.sorted.bam"
+        "{sample}_{reference}.sorted.dedup.bam"
     output:
         "{sample}_{reference}_variants.txt"
     shell:

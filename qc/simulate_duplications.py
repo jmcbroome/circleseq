@@ -78,7 +78,7 @@ def read_fasta(f):
                     fd[cr] = (cseq,cquals)
                 cseq = ""
                 cquals = ""
-                cr = entry.strip()
+                cr = entry.strip().split()[0] #ignore any part of the name separated from the rest by a space.
                 adding_seq = True
             elif entry[0] == "+":
                 adding_seq = False
